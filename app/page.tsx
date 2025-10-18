@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Clock, Play, Pause, AlertCircle, CheckCircle2, Circle, ArrowRight, Plus, ChevronDown, X, TrendingUp } from 'lucide-react';
+import { Clock, Play, Pause, AlertCircle, CheckCircle2, Circle, ArrowRight, Plus, ChevronDown, X, TrendingUp, Trash2 } from 'lucide-react';
 
 export default function Home() {
   const [currentView, setCurrentView] = useState('home');
@@ -11,8 +11,8 @@ export default function Home() {
   const [showModal, setShowModal] = useState<string | null>(null);
   const [wizardStep, setWizardStep] = useState(1);
   const [expandedProject, setExpandedProject] = useState<number | null>(null);
-
-  const projects = [
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [projectsList, setProjectsList] = useState([
     {
       id: 1,
       name: 'Digital Twins',
@@ -50,7 +50,30 @@ export default function Home() {
       nextAction: 'Design dashboard layout',
       daysActive: 3
     }
-  ];
+  ]);
+
+  const projects = projectsList;
+
+  const handleCompleteProject = (projectId: number) => {
+    setProjectsList(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, status: 'Complete', progress: 100 }
+        : p
+    ));
+    setShowModal(null);
+    setSelectedProjectId(null);
+  };
+
+  const handleDeleteProject = (projectId: number) => {
+    setProjectsList(prev => prev.filter(p => p.id !== projectId));
+    setShowModal(null);
+    setSelectedProjectId(null);
+    if (activeTimer === projectId) {
+      setActiveTimer(null);
+      setTimerType(null);
+      setTimerSeconds(0);
+    }
+  };
 
   const insights = [
     {
@@ -200,7 +223,7 @@ export default function Home() {
 
                 {expandedProject === project.id && (
                   <div className="mb-3 pt-3 border-t border-gray-100">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                       <div>
                         <div className="text-gray-500 mb-1">Building Time</div>
                         <div className="font-semibold text-gray-900">{project.buildingHours.toFixed(1)}h</div>
@@ -209,6 +232,28 @@ export default function Home() {
                         <div className="text-gray-500 mb-1">Debugging Time</div>
                         <div className="font-semibold text-gray-900">{project.debuggingHours.toFixed(1)}h</div>
                       </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedProjectId(project.id);
+                          setShowModal('complete-confirm');
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 text-sm font-medium"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        Mark Complete
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedProjectId(project.id);
+                          setShowModal('delete-confirm');
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 text-sm font-medium"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete Project
+                      </button>
                     </div>
                   </div>
                 )}
@@ -264,6 +309,62 @@ export default function Home() {
   );
 
   const Modal = ({ type }: { type: string }) => {
+    if (type === 'complete-confirm') {
+      const project = projects.find(p => p.id === selectedProjectId);
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Mark Project as Complete?</h3>
+            <p className="text-gray-600 mb-4">
+              Are you sure you want to mark &quot;{project?.name}&quot; as complete? This will set the progress to 100% and archive the project.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowModal(null)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => selectedProjectId && handleCompleteProject(selectedProjectId)}
+                className="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium"
+              >
+                Mark Complete
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'delete-confirm') {
+      const project = projects.find(p => p.id === selectedProjectId);
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Project?</h3>
+            <p className="text-gray-600 mb-4">
+              Are you sure you want to delete &quot;{project?.name}&quot;? This action cannot be undone. All time logs and progress will be permanently removed.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowModal(null)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => selectedProjectId && handleDeleteProject(selectedProjectId)}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+              >
+                Delete Project
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (type === 'limit') {
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
