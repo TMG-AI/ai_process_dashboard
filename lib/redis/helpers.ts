@@ -21,43 +21,27 @@ export async function createProject(userId: string, projectData: Omit<Project, '
     throw new Error('Project name is required');
   }
 
-  if (!projectData.status) {
-    throw new Error('Project status is required');
+  if (!projectData.description || !projectData.description.trim()) {
+    throw new Error('Description is required (What will this do?)');
+  }
+
+  if (!projectData.whoWillUseIt || !projectData.whoWillUseIt.trim()) {
+    throw new Error('User is required (Who will use it?)');
+  }
+
+  if (!projectData.platform) {
+    throw new Error('Platform is required');
+  }
+
+  if (!projectData.features || !projectData.features.trim()) {
+    throw new Error('Features are required');
   }
 
   if (!projectData.priority) {
-    throw new Error('Project priority is required');
+    throw new Error('Priority is required');
   }
 
-  // Validate wizard projects have all required fields
-  if (projectData.problemStatement || projectData.targetUser || projectData.mvpScope) {
-    // If any wizard field is present, all required wizard fields must be present
-    if (!projectData.problemStatement || !projectData.problemStatement.trim()) {
-      throw new Error('Problem statement is required for wizard projects');
-    }
-
-    if (!projectData.targetUser || !projectData.targetUser.trim()) {
-      throw new Error('Target user is required for wizard projects');
-    }
-
-    if (!projectData.mvpScope || projectData.mvpScope.length === 0) {
-      throw new Error('At least one MVP feature is required for wizard projects');
-    }
-
-    if (!projectData.outOfScope || !projectData.outOfScope.trim()) {
-      throw new Error('Out of scope definition is required for wizard projects');
-    }
-
-    if (!projectData.platform) {
-      throw new Error('Platform is required for wizard projects');
-    }
-
-    if (typeof projectData.estimatedHours !== 'number' || projectData.estimatedHours < 0) {
-      throw new Error('Valid estimated hours is required for wizard projects');
-    }
-  }
-
-  const projectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const projectId = `proj_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   const project: Project = {
     id: projectId,
     userId,
@@ -266,6 +250,17 @@ export async function getUserWeeklyReviews(userId: string, limit: number = 52): 
 export async function getActiveProjectCount(userId: string): Promise<number> {
   const projects = await getUserProjects(userId);
   return projects.filter(p => p.status !== 'complete' && p.status !== 'paused').length;
+}
+
+export async function getTotalProjectCount(userId: string): Promise<number> {
+  const projects = await getUserProjects(userId);
+  // Count all projects except completed ones (includes active + paused)
+  return projects.filter(p => p.status !== 'complete').length;
+}
+
+export async function getPausedProjectCount(userId: string): Promise<number> {
+  const projects = await getUserProjects(userId);
+  return projects.filter(p => p.status === 'paused').length;
 }
 
 export async function getProjectTimeLogs(projectId: string, userId: string): Promise<TimeLog[]> {

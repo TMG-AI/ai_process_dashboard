@@ -37,11 +37,17 @@ export interface WizardProject extends ProjectBase {
 // This allows flexibility while maintaining type safety
 export interface Project extends ProjectBase {
   description?: string;
+  whoWillUseIt?: string;
+  features?: string;
+  complexity?: 'simple' | 'medium' | 'complex';
+  targetCompletion?: string;
+  platform?: 'n8n' | 'claude-code' | 'lovable' | 'other';
+
+  // Legacy fields (kept for backward compatibility)
   problemStatement?: string;
   targetUser?: string;
   mvpScope?: string[];
   outOfScope?: string;
-  platform?: 'n8n' | 'claude-code' | 'lovable' | 'other';
   estimatedHours?: number;
   potentialRisks?: string;
   mitigationStrategy?: string;
