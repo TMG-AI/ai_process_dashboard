@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, Play, Pause, AlertCircle, CheckCircle2, Plus, ChevronDown, TrendingUp, Trash2 } from 'lucide-react';
 import { Project } from '@/lib/types';
@@ -92,8 +92,9 @@ export default function DashboardPage() {
       return;
     }
 
-    const elapsedMinutes = Math.floor(elapsedSeconds / 60);
-    const elapsedHours = (elapsedMinutes / 60).toFixed(1);
+    // Keep decimal precision - don't round down to 0!
+    const elapsedMinutes = elapsedSeconds / 60; // e.g., 15 seconds = 0.25 minutes
+    const elapsedHours = (elapsedMinutes / 60).toFixed(2); // e.g., 0.25 min = 0.004 hours
 
     console.log('⏱️ Stopping timer:', {
       timeLogId: currentTimeLogId,
@@ -215,21 +216,25 @@ export default function DashboardPage() {
     }
   };
 
-  // Calculate metrics
-  const activeProjects = projects.filter(p => p.status !== 'complete' && p.status !== 'paused');
-  const buildingHours = projects.reduce((sum, p) => sum + p.buildingHours, 0);
-  const debuggingHours = projects.reduce((sum, p) => sum + p.debuggingHours, 0);
+  // Calculate metrics (memoized to prevent infinite render loop)
+  const { activeProjects, buildingHours, debuggingHours } = useMemo(() => {
+    const active = projects.filter(p => p.status !== 'complete' && p.status !== 'paused');
+    const building = projects.reduce((sum, p) => sum + (p.buildingHours || 0), 0);
+    const debugging = projects.reduce((sum, p) => sum + (p.debuggingHours || 0), 0);
 
-  console.log('📊 BROWSER: Overview totals calculated:', {
-    totalProjects: projects.length,
-    buildingHours,
-    debuggingHours,
-    projectBreakdown: projects.map(p => ({
-      name: p.name,
-      buildingHours: p.buildingHours,
-      debuggingHours: p.debuggingHours
-    }))
-  });
+    console.log('📊 BROWSER: Overview totals calculated:', {
+      totalProjects: projects.length,
+      buildingHours: building,
+      debuggingHours: debugging,
+      projectBreakdown: projects.map(p => ({
+        name: p.name,
+        buildingHours: p.buildingHours || 0,
+        debuggingHours: p.debuggingHours || 0
+      }))
+    });
+
+    return { activeProjects: active, buildingHours: building, debuggingHours: debugging };
+  }, [projects]);
   const completedThisMonth = projects.filter(p => {
     if (!p.completedAt) return false;
     const completedDate = new Date(p.completedAt);
