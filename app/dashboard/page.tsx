@@ -6,6 +6,18 @@ import { Clock, Play, Pause, AlertCircle, CheckCircle2, Plus, ChevronDown, Trend
 import { Project } from '@/lib/types';
 import { useTimerStore } from '@/lib/store/timer-store';
 
+// Helper function to format platform names
+const formatPlatform = (platform?: string) => {
+  if (!platform) return 'N/A';
+  const platformMap: Record<string, string> = {
+    'n8n': 'n8n',
+    'claude-code': 'Claude Code',
+    'lovable': 'Lovable',
+    'other': 'Other',
+  };
+  return platformMap[platform] || platform;
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const [showModal, setShowModal] = useState<string | null>(null);
@@ -335,9 +347,17 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
-                      <h3 className="font-semibold text-gray-900">{project.name}</h3>
+                      <h3
+                        className="font-semibold text-gray-900 cursor-pointer hover:text-gray-700"
+                        onClick={() => {
+                          setSelectedProjectId(project.id);
+                          setShowModal('project-details');
+                        }}
+                      >
+                        {project.name}
+                      </h3>
                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                        {project.platform || 'N/A'}
+                        {formatPlatform(project.platform)}
                       </span>
                       {project.stuckSince && (
                         <span className="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded flex items-center gap-1">
@@ -613,6 +633,139 @@ export default function DashboardPage() {
                 className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
               >
                 Take Break
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'project-details') {
+      const project = projects.find(p => p.id === selectedProjectId);
+      if (!project) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6 my-8">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold text-gray-900">{project.name}</h2>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                    {formatPlatform(project.platform)}
+                  </span>
+                  <span className={`text-sm px-2 py-1 rounded ${
+                    project.priority === 'high' ? 'bg-red-100 text-red-700' :
+                    project.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {project.priority.charAt(0).toUpperCase() + project.priority.slice(1)} Priority
+                  </span>
+                  <span className={`text-sm px-2 py-1 rounded ${
+                    project.status === 'complete' ? 'bg-green-100 text-green-700' :
+                    project.status === 'paused' ? 'bg-gray-100 text-gray-700' :
+                    'bg-blue-100 text-blue-700'
+                  }`}>
+                    {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowModal(null);
+                  setSelectedProjectId(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Description */}
+              {project.description && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">What will this do?</h3>
+                  <p className="text-gray-900">{project.description}</p>
+                </div>
+              )}
+
+              {/* Who will use it */}
+              {project.whoWillUseIt && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">Who will use it?</h3>
+                  <p className="text-gray-900">{project.whoWillUseIt}</p>
+                </div>
+              )}
+
+              {/* Features */}
+              {project.features && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">Features</h3>
+                  <p className="text-gray-900 whitespace-pre-wrap">{project.features}</p>
+                </div>
+              )}
+
+              {/* Complexity */}
+              {project.complexity && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">Complexity</h3>
+                  <p className="text-gray-900 capitalize">{project.complexity}</p>
+                </div>
+              )}
+
+              {/* Time tracking */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">Building Hours</h3>
+                  <p className="text-2xl font-semibold text-gray-900">{project.buildingHours.toFixed(1)}h</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">Debugging Hours</h3>
+                  <p className="text-2xl font-semibold text-gray-900">{project.debuggingHours.toFixed(1)}h</p>
+                </div>
+              </div>
+
+              {/* Progress */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Progress: {project.progress}%</h3>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gray-900 transition-all duration-500"
+                    style={{ width: `${project.progress}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Target Completion */}
+              {project.targetCompletion && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">Target Completion</h3>
+                  <p className="text-gray-900">{new Date(project.targetCompletion).toLocaleDateString()}</p>
+                </div>
+              )}
+
+              {/* Created/Updated */}
+              <div className="pt-4 border-t border-gray-200 text-xs text-gray-500">
+                <p>Created: {new Date(project.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(project.updatedAt).toLocaleString()}</p>
+                {project.completedAt && (
+                  <p>Completed: {new Date(project.completedAt).toLocaleString()}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowModal(null);
+                  setSelectedProjectId(null);
+                }}
+                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+              >
+                Close
               </button>
             </div>
           </div>
