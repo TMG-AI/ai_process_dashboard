@@ -30,15 +30,15 @@ export async function createProject(userId: string, projectData: Omit<Project, '
     updatedAt: new Date().toISOString(),
   };
 
-  await redis.set(`project:${projectId}`, JSON.stringify(project));
+  await redis.set(`project:${projectId}`, project);
   await redis.sadd(`user:${userId}:projects`, projectId);
 
   return project;
 }
 
 export async function getProject(projectId: string): Promise<Project | null> {
-  const data = await redis.get<string>(`project:${projectId}`);
-  return data ? JSON.parse(data) : null;
+  const data = await redis.get<Project>(`project:${projectId}`);
+  return data;
 }
 
 export async function getUserProjects(userId: string): Promise<Project[]> {
@@ -62,7 +62,7 @@ export async function updateProject(projectId: string, updates: Partial<Project>
     updatedAt: new Date().toISOString(),
   };
 
-  await redis.set(`project:${projectId}`, JSON.stringify(updatedProject));
+  await redis.set(`project:${projectId}`, updatedProject);
   return updatedProject;
 }
 
@@ -81,7 +81,7 @@ export async function createTimeLog(timeLogData: Omit<TimeLog, 'id' | 'createdAt
     createdAt: new Date().toISOString(),
   };
 
-  await redis.set(`timelog:${timeLogId}`, JSON.stringify(timeLog));
+  await redis.set(`timelog:${timeLogId}`, timeLog);
   await redis.zadd(`user:${timeLogData.userId}:timelogs`, {
     score: new Date(timeLog.startedAt).getTime(),
     member: timeLogId,
@@ -91,8 +91,8 @@ export async function createTimeLog(timeLogData: Omit<TimeLog, 'id' | 'createdAt
 }
 
 export async function getTimeLog(timeLogId: string): Promise<TimeLog | null> {
-  const data = await redis.get<string>(`timelog:${timeLogId}`);
-  return data ? JSON.parse(data) : null;
+  const data = await redis.get<TimeLog>(`timelog:${timeLogId}`);
+  return data;
 }
 
 export async function getUserTimeLogs(userId: string, limit: number = 100): Promise<TimeLog[]> {
@@ -115,7 +115,7 @@ export async function updateTimeLog(timeLogId: string, updates: Partial<TimeLog>
     ...updates,
   };
 
-  await redis.set(`timelog:${timeLogId}`, JSON.stringify(updatedTimeLog));
+  await redis.set(`timelog:${timeLogId}`, updatedTimeLog);
   return updatedTimeLog;
 }
 
@@ -130,15 +130,15 @@ export async function createDebugLog(debugLogData: Omit<DebugLog, 'id' | 'create
     createdAt: new Date().toISOString(),
   };
 
-  await redis.set(`debuglog:${debugLogId}`, JSON.stringify(debugLog));
+  await redis.set(`debuglog:${debugLogId}`, debugLog);
   await redis.sadd(`user:${debugLogData.userId}:debuglogs`, debugLogId);
 
   return debugLog;
 }
 
 export async function getDebugLog(debugLogId: string): Promise<DebugLog | null> {
-  const data = await redis.get<string>(`debuglog:${debugLogId}`);
-  return data ? JSON.parse(data) : null;
+  const data = await redis.get<DebugLog>(`debuglog:${debugLogId}`);
+  return data;
 }
 
 export async function getUserDebugLogs(userId: string): Promise<DebugLog[]> {
@@ -163,15 +163,15 @@ export async function createColleagueRequest(requestData: Omit<ColleagueRequest,
     submittedAt: new Date().toISOString(),
   };
 
-  await redis.set(`request:${requestId}`, JSON.stringify(request));
+  await redis.set(`request:${requestId}`, request);
   await redis.sadd(`user:${requestData.userId}:requests`, requestId);
 
   return request;
 }
 
 export async function getColleagueRequest(requestId: string): Promise<ColleagueRequest | null> {
-  const data = await redis.get<string>(`request:${requestId}`);
-  return data ? JSON.parse(data) : null;
+  const data = await redis.get<ColleagueRequest>(`request:${requestId}`);
+  return data;
 }
 
 export async function getUserColleagueRequests(userId: string): Promise<ColleagueRequest[]> {
@@ -195,7 +195,7 @@ export async function createWeeklyReview(reviewData: Omit<WeeklyReview, 'id' | '
     createdAt: new Date().toISOString(),
   };
 
-  await redis.set(`review:${reviewId}`, JSON.stringify(review));
+  await redis.set(`review:${reviewId}`, review);
   await redis.zadd(`user:${reviewData.userId}:reviews`, {
     score: new Date(review.weekStart).getTime(),
     member: reviewId,
@@ -205,8 +205,8 @@ export async function createWeeklyReview(reviewData: Omit<WeeklyReview, 'id' | '
 }
 
 export async function getWeeklyReview(reviewId: string): Promise<WeeklyReview | null> {
-  const data = await redis.get<string>(`review:${reviewId}`);
-  return data ? JSON.parse(data) : null;
+  const data = await redis.get<WeeklyReview>(`review:${reviewId}`);
+  return data;
 }
 
 export async function getUserWeeklyReviews(userId: string, limit: number = 52): Promise<WeeklyReview[]> {
