@@ -1,77 +1,89 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Clock, Play, Pause, AlertCircle, CheckCircle2, Circle, ArrowRight, Plus, ChevronDown, X, TrendingUp, Trash2 } from 'lucide-react';
+import { Clock, Play, Pause, AlertCircle, CheckCircle2, Plus, ChevronDown, TrendingUp, Trash2 } from 'lucide-react';
+import { Project } from '@/lib/types';
 
 export default function Home() {
   const [currentView, setCurrentView] = useState('home');
-  const [activeTimer, setActiveTimer] = useState<number | null>(null);
+  const [activeTimer, setActiveTimer] = useState<string | null>(null);
   const [timerType, setTimerType] = useState<'building' | 'debugging' | null>(null);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [showModal, setShowModal] = useState<string | null>(null);
-  const [wizardStep, setWizardStep] = useState(1);
-  const [expandedProject, setExpandedProject] = useState<number | null>(null);
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [projectsList, setProjectsList] = useState([
-    {
-      id: 1,
-      name: 'Digital Twins',
-      platform: 'Agent',
-      status: 'In Progress',
-      progress: 65,
-      hoursLogged: 6.5,
-      buildingHours: 2.0,
-      debuggingHours: 4.5,
-      nextAction: 'Resolve API timeout in workflow',
-      daysActive: 12,
-      alert: 'Stuck for 4 days'
-    },
-    {
-      id: 2,
-      name: 'TMG Contract Creation',
-      platform: 'GPT',
-      status: 'In Progress',
-      progress: 40,
-      hoursLogged: 3.2,
-      buildingHours: 3.0,
-      debuggingHours: 0.2,
-      nextAction: 'Add contract examples to system prompt',
-      daysActive: 5
-    },
-    {
-      id: 3,
-      name: 'ChatMPT Media Planning',
-      platform: 'Cursor',
-      status: 'In Progress',
-      progress: 15,
-      hoursLogged: 1.5,
-      buildingHours: 1.5,
-      debuggingHours: 0,
-      nextAction: 'Design dashboard layout',
-      daysActive: 3
-    }
-  ]);
+  const [expandedProject, setExpandedProject] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const projects = projectsList;
 
-  const handleCompleteProject = (projectId: number) => {
-    setProjectsList(prev => prev.map(p =>
-      p.id === projectId
-        ? { ...p, status: 'Complete', progress: 100 }
-        : p
-    ));
-    setShowModal(null);
-    setSelectedProjectId(null);
+  // Fetch projects from the database
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/projects');
+        if (!response.ok) {
+          throw new Error('Failed to fetch projects');
+        }
+        const data = await response.json();
+        setProjectsList(data.projects);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+        setError('Failed to load projects. Make sure Redis is configured in .env.local');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchProjects();
+  }, []);
+
+  const handleCompleteProject = async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'complete',
+          progress: 100,
+          completedAt: new Date().toISOString()
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to complete project');
+
+      const { project } = await response.json();
+      setProjectsList(prev => prev.map(p => p.id === projectId ? project : p));
+      setShowModal(null);
+      setSelectedProjectId(null);
+    } catch (err) {
+      console.error('Error completing project:', err);
+      alert('Failed to complete project. Please try again.');
+    }
   };
 
-  const handleDeleteProject = (projectId: number) => {
-    setProjectsList(prev => prev.filter(p => p.id !== projectId));
-    setShowModal(null);
-    setSelectedProjectId(null);
-    if (activeTimer === projectId) {
-      setActiveTimer(null);
-      setTimerType(null);
-      setTimerSeconds(0);
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete project');
+
+      setProjectsList(prev => prev.filter(p => p.id !== projectId));
+      setShowModal(null);
+      setSelectedProjectId(null);
+      if (activeTimer === projectId) {
+        setActiveTimer(null);
+        setTimerType(null);
+        setTimerSeconds(0);
+      }
+    } catch (err) {
+      console.error('Error deleting project:', err);
+      alert('Failed to delete project. Please try again.');
     }
   };
 
@@ -115,9 +127,30 @@ export default function Home() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const HomeView = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-4 gap-4">
+  const HomeView = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-500">Loading projects...</div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h3 className="text-red-900 font-semibold mb-2">Error Loading Projects</h3>
+          <p className="text-red-800 text-sm">{error}</p>
+          <p className="text-red-700 text-sm mt-2">
+            Make sure you have set up your Upstash Redis credentials in <code className="bg-red-100 px-1">.env.local</code>
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-4 gap-4">
         <div className="bg-white border border-gray-200 rounded-lg p-5">
           <div className="text-sm text-gray-600 mb-1">Active Projects</div>
           <div className="text-3xl font-semibold text-gray-900">{projects.length}</div>
@@ -177,8 +210,21 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="space-y-3">
-          {projects.map(project => (
+        {projects.length === 0 ? (
+          <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+            <h3 className="text-gray-900 font-semibold mb-2">No projects yet</h3>
+            <p className="text-gray-600 mb-4">Get started by creating your first project</p>
+            <button
+              onClick={() => setCurrentView('wizard')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Create First Project
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {projects.map(project => (
             <div
               key={project.id}
               className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
@@ -189,12 +235,12 @@ export default function Home() {
                     <div className="flex items-center gap-3 mb-1">
                       <h3 className="font-semibold text-gray-900">{project.name}</h3>
                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                        {project.platform}
+                        {project.platform || 'N/A'}
                       </span>
-                      {project.alert && (
+                      {project.stuckSince && (
                         <span className="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
-                          {project.alert}
+                          Stuck since {new Date(project.stuckSince).toLocaleDateString()}
                         </span>
                       )}
                     </div>
@@ -303,10 +349,165 @@ export default function Home() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
-  );
+    );
+  };
+
+  const NewProjectView = () => {
+    const [formData, setFormData] = useState({
+      name: '',
+      description: '',
+      platform: 'n8n' as 'n8n' | 'claude-code' | 'lovable' | 'other',
+      priority: 'medium' as 'low' | 'medium' | 'high',
+      nextAction: '',
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsSubmitting(true);
+
+      try {
+        const response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...formData,
+            status: 'planning',
+          }),
+        });
+
+        if (!response.ok) throw new Error('Failed to create project');
+
+        const { project } = await response.json();
+        setProjectsList(prev => [...prev, project]);
+        setCurrentView('home');
+        setFormData({
+          name: '',
+          description: '',
+          platform: 'n8n',
+          priority: 'medium',
+          nextAction: '',
+        });
+      } catch (err) {
+        console.error('Error creating project:', err);
+        alert('Failed to create project. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-semibold text-gray-900">Create New Project</h2>
+            <button
+              onClick={() => setCurrentView('home')}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              Cancel
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Project Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
+                placeholder="e.g., Digital Twins Automation"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
+                rows={3}
+                placeholder="Brief description of the project..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Platform
+                </label>
+                <select
+                  value={formData.platform}
+                  onChange={(e) => setFormData({ ...formData, platform: e.target.value as 'n8n' | 'claude-code' | 'lovable' | 'other' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
+                >
+                  <option value="n8n">n8n</option>
+                  <option value="claude-code">Claude Code</option>
+                  <option value="lovable">Lovable</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Priority
+                </label>
+                <select
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Next Action
+              </label>
+              <input
+                type="text"
+                value={formData.nextAction}
+                onChange={(e) => setFormData({ ...formData, nextAction: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
+                placeholder="e.g., Set up development environment"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setCurrentView('home')}
+                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Creating...' : 'Create Project'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
 
   const Modal = ({ type }: { type: string }) => {
     if (type === 'complete-confirm') {
@@ -520,6 +721,7 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {currentView === 'home' && <HomeView />}
+        {currentView === 'wizard' && <NewProjectView />}
       </main>
 
       <div className="fixed bottom-6 right-6 bg-white border border-gray-300 rounded-lg shadow-lg p-4 max-w-xs">
