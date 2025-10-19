@@ -283,7 +283,7 @@ export default function DashboardPage() {
       return {
         type: 'warning',
         title: 'Debugging time elevated',
-        description: `${Math.round((debugging / total) * 100)}% of ${p.name} time spent debugging (${debugging.toFixed(1)}h) vs. building (${building.toFixed(1)}h)`,
+        description: `${Math.round((debugging / total) * 100)}% of ${p.name} time spent debugging (${formatHours(debugging)}) vs. building (${formatHours(building)})`,
         action: 'Review debug logs',
         projectId: p.id,
       };
@@ -311,6 +311,7 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [activeProjectId, elapsedSeconds, timerType, incrementSeconds, handleStopTimer, setShowModal]);
 
+  // Format seconds to h:mm:ss
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -320,6 +321,12 @@ export default function DashboardPage() {
       return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Convert decimal hours to h:mm:ss format
+  const formatHours = (decimalHours: number) => {
+    const totalSeconds = Math.floor(decimalHours * 3600);
+    return formatTime(totalSeconds);
   };
 
   const HomeView = () => {
@@ -352,19 +359,18 @@ export default function DashboardPage() {
           <div className="text-xs text-gray-500 mt-1">of 3 max</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-5">
-          <div className="text-sm text-gray-600 mb-1">Building Hours</div>
-          <div className="text-3xl font-semibold text-gray-900">
-            {buildingHours.toFixed(2)}
+          <div className="text-sm text-gray-600 mb-1">Building Time</div>
+          <div className="text-2xl font-semibold text-gray-900 font-mono">
+            {formatHours(buildingHours)}
           </div>
-          {buildingHours === 0 && <div className="text-xs text-red-500">❌ Still 0 - check console logs</div>}
           <div className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
             <TrendingUp className="w-3 h-3" /> this week
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-5">
-          <div className="text-sm text-gray-600 mb-1">Debugging Hours</div>
-          <div className="text-3xl font-semibold text-gray-900">
-            {debuggingHours.toFixed(2)}
+          <div className="text-sm text-gray-600 mb-1">Debugging Time</div>
+          <div className="text-2xl font-semibold text-gray-900 font-mono">
+            {formatHours(debuggingHours)}
           </div>
           <div className="text-xs text-amber-600 mt-1">this week</div>
         </div>
@@ -456,21 +462,21 @@ export default function DashboardPage() {
                     <div className="flex gap-4 mt-2 text-xs text-gray-500">
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        <span className="font-medium text-gray-700">
-                          {(
+                        <span className="font-medium text-gray-700 font-mono">
+                          {formatHours(
                             (project.buildingHours || 0) +
                             (activeProjectId === project.id && timerType === 'building' ? elapsedSeconds / 3600 : 0)
-                          ).toFixed(2)}h
+                          )}
                         </span>
                         <span>building</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />
-                        <span className="font-medium text-gray-700">
-                          {(
+                        <span className="font-medium text-gray-700 font-mono">
+                          {formatHours(
                             (project.debuggingHours || 0) +
                             (activeProjectId === project.id && timerType === 'debugging' ? elapsedSeconds / 3600 : 0)
-                          ).toFixed(2)}h
+                          )}
                         </span>
                         <span>debugging</span>
                       </div>
@@ -878,12 +884,12 @@ export default function DashboardPage() {
               {/* Time tracking */}
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-1">Building Hours</h3>
-                  <p className="text-2xl font-semibold text-gray-900">{(project.buildingHours || 0).toFixed(1)}h</p>
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">Building Time</h3>
+                  <p className="text-2xl font-semibold text-gray-900 font-mono">{formatHours(project.buildingHours || 0)}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-1">Debugging Hours</h3>
-                  <p className="text-2xl font-semibold text-gray-900">{(project.debuggingHours || 0).toFixed(1)}h</p>
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">Debugging Time</h3>
+                  <p className="text-2xl font-semibold text-gray-900 font-mono">{formatHours(project.debuggingHours || 0)}</p>
                 </div>
               </div>
 
