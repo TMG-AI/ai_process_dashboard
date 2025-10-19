@@ -45,15 +45,18 @@ export default function DashboardPage() {
     async function fetchProjects() {
       try {
         setIsLoading(true);
+        console.log('🔄 BROWSER: Fetching projects...');
         const response = await fetch('/api/projects');
         if (!response.ok) {
           throw new Error('Failed to fetch projects');
         }
         const data = await response.json();
+        console.log('📦 BROWSER: Received projects:', data.projects);
+        console.log('📊 BROWSER: Project details:', JSON.stringify(data.projects, null, 2));
         setProjectsList(data.projects);
         setError(null);
       } catch (err) {
-        console.error('Error fetching projects:', err);
+        console.error('❌ BROWSER: Error fetching projects:', err);
         setError('Failed to load projects. Make sure Redis is configured in .env.local');
       } finally {
         setIsLoading(false);
@@ -125,13 +128,20 @@ export default function DashboardPage() {
       console.log('✅ Timer stopped and reset');
 
       // Refresh projects to get updated hours
+      console.log('🔄 BROWSER: Refreshing projects after timer stop...');
       const projectsResponse = await fetch('/api/projects');
       if (projectsResponse.ok) {
         const data = await projectsResponse.json();
-        console.log('📊 Refreshed projects:', data.projects);
+        console.log('✅ BROWSER: Refreshed projects:', data.projects);
+        console.log('📊 BROWSER: Updated hours check:', data.projects.map((p: Project) => ({
+          id: p.id,
+          name: p.name,
+          buildingHours: p.buildingHours,
+          debuggingHours: p.debuggingHours
+        })));
         setProjectsList(data.projects);
       } else {
-        console.error('❌ Failed to refresh projects');
+        console.error('❌ BROWSER: Failed to refresh projects');
       }
     } catch (error) {
       console.error('❌ Error stopping timer:', error);
@@ -209,6 +219,17 @@ export default function DashboardPage() {
   const activeProjects = projects.filter(p => p.status !== 'complete' && p.status !== 'paused');
   const buildingHours = projects.reduce((sum, p) => sum + p.buildingHours, 0);
   const debuggingHours = projects.reduce((sum, p) => sum + p.debuggingHours, 0);
+
+  console.log('📊 BROWSER: Overview totals calculated:', {
+    totalProjects: projects.length,
+    buildingHours,
+    debuggingHours,
+    projectBreakdown: projects.map(p => ({
+      name: p.name,
+      buildingHours: p.buildingHours,
+      debuggingHours: p.debuggingHours
+    }))
+  });
   const completedThisMonth = projects.filter(p => {
     if (!p.completedAt) return false;
     const completedDate = new Date(p.completedAt);
@@ -660,7 +681,14 @@ export default function DashboardPage() {
 
     if (type === 'project-details') {
       const project = projects.find(p => p.id === selectedProjectId);
-      if (!project) return null;
+      console.log('🔍 BROWSER: Opening project details modal');
+      console.log('🔍 BROWSER: Selected project ID:', selectedProjectId);
+      console.log('🔍 BROWSER: All projects:', projects);
+      console.log('🔍 BROWSER: Found project:', project);
+      if (!project) {
+        console.error('❌ BROWSER: Project not found!');
+        return null;
+      }
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">

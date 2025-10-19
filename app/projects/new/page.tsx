@@ -30,31 +30,39 @@ export default function NewProjectPage() {
   const onSubmit = async (data: ProjectFormData) => {
     setIsSubmitting(true);
 
+    const projectData = {
+      name: data.name,
+      description: data.description,
+      whoWillUseIt: data.whoWillUseIt,
+      platform: data.platform,
+      features: data.features,
+      complexity: data.complexity,
+      priority: data.priority,
+      targetCompletion: data.targetCompletion,
+      status: 'planning',
+    };
+
+    console.log('🚀 BROWSER: Submitting project with data:', projectData);
+
     try {
       const response = await fetch('/api/projects/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: data.name,
-          description: data.description,
-          whoWillUseIt: data.whoWillUseIt,
-          platform: data.platform,
-          features: data.features,
-          complexity: data.complexity,
-          priority: data.priority,
-          targetCompletion: data.targetCompletion,
-          status: 'planning',
-        }),
+        body: JSON.stringify(projectData),
       });
 
+      const result = await response.json();
+      console.log('📦 BROWSER: API response:', result);
+
       if (response.ok) {
+        console.log('✅ BROWSER: Project created successfully:', result.project);
         router.push('/dashboard');
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to create project');
+        console.error('❌ BROWSER: Failed to create project:', result);
+        alert(result.error || 'Failed to create project');
       }
     } catch (error) {
-      console.error('Error creating project:', error);
+      console.error('❌ BROWSER: Error creating project:', error);
       alert('Failed to create project. Please try again.');
     } finally {
       setIsSubmitting(false);
