@@ -16,6 +16,47 @@ import { Project, TimeLog, DebugLog, ColleagueRequest, WeeklyReview } from '@/li
 // ===== PROJECT OPERATIONS =====
 
 export async function createProject(userId: string, projectData: Omit<Project, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<Project> {
+  // Validate required fields
+  if (!projectData.name || !projectData.name.trim()) {
+    throw new Error('Project name is required');
+  }
+
+  if (!projectData.status) {
+    throw new Error('Project status is required');
+  }
+
+  if (!projectData.priority) {
+    throw new Error('Project priority is required');
+  }
+
+  // Validate wizard projects have all required fields
+  if (projectData.problemStatement || projectData.targetUser || projectData.mvpScope) {
+    // If any wizard field is present, all required wizard fields must be present
+    if (!projectData.problemStatement || !projectData.problemStatement.trim()) {
+      throw new Error('Problem statement is required for wizard projects');
+    }
+
+    if (!projectData.targetUser || !projectData.targetUser.trim()) {
+      throw new Error('Target user is required for wizard projects');
+    }
+
+    if (!projectData.mvpScope || projectData.mvpScope.length === 0) {
+      throw new Error('At least one MVP feature is required for wizard projects');
+    }
+
+    if (!projectData.outOfScope || !projectData.outOfScope.trim()) {
+      throw new Error('Out of scope definition is required for wizard projects');
+    }
+
+    if (!projectData.platform) {
+      throw new Error('Platform is required for wizard projects');
+    }
+
+    if (typeof projectData.estimatedHours !== 'number' || projectData.estimatedHours < 0) {
+      throw new Error('Valid estimated hours is required for wizard projects');
+    }
+  }
+
   const projectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const project: Project = {
     id: projectId,

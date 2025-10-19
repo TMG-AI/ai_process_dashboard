@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createProject, getUserProjects } from '@/lib/redis/helpers';
+import { NextResponse } from 'next/server';
+import { getUserProjects } from '@/lib/redis/helpers';
 
 // Temporary: For local testing, we'll use a fixed user ID
 // In production, this will come from authentication
@@ -19,36 +19,5 @@ export async function GET() {
   }
 }
 
-// POST /api/projects - Create a new project
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-
-    const project = await createProject(TEMP_USER_ID, {
-      name: body.name,
-      description: body.description,
-      problemStatement: body.problemStatement,
-      targetUser: body.targetUser,
-      mvpScope: body.mvpScope,
-      outOfScope: body.outOfScope,
-      status: body.status || 'planning',
-      platform: body.platform,
-      priority: body.priority || 'medium',
-      estimatedHours: body.estimatedHours,
-      buildingHours: 0,
-      debuggingHours: 0,
-      progress: 0,
-      potentialRisks: body.potentialRisks,
-      mitigationStrategy: body.mitigationStrategy,
-      nextAction: body.nextAction,
-    });
-
-    return NextResponse.json({ project }, { status: 201 });
-  } catch (error) {
-    console.error('Error creating project:', error);
-    return NextResponse.json(
-      { error: 'Failed to create project. Make sure your Redis credentials are set in .env.local' },
-      { status: 500 }
-    );
-  }
-}
+// POST endpoint removed - use /api/projects/create instead
+// The /api/projects/create endpoint enforces the 3-project limit

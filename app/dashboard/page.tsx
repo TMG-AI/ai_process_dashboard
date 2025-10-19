@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Clock, Play, Pause, AlertCircle, CheckCircle2, Plus, ChevronDown, TrendingUp, Trash2 } from 'lucide-react';
 import { Project } from '@/lib/types';
 import { useTimerStore } from '@/lib/store/timer-store';
 
 export default function DashboardPage() {
-  const [currentView, setCurrentView] = useState('home');
+  const router = useRouter();
   const [showModal, setShowModal] = useState<string | null>(null);
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -69,13 +70,14 @@ export default function DashboardPage() {
     }
   };
 
-  // Stop timer
-  const handleStopTimer = async () => {
+  // Stop timer (wrapped in useCallback to prevent unnecessary re-renders in useEffect)
+  const handleStopTimer = useCallback(async () => {
     if (!currentTimeLogId || !activeProjectId || !timerType) return;
 
-    try {
-      const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+    const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+    const elapsedHours = (elapsedMinutes / 60).toFixed(1);
 
+    try {
       const response = await fetch('/api/timelog/stop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -87,19 +89,28 @@ export default function DashboardPage() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to stop timer');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to stop timer');
+      }
+
+      // Only reset timer after successful API call
+      stopTimer();
 
       // Refresh projects to get updated hours
       const projectsResponse = await fetch('/api/projects');
-      const data = await projectsResponse.json();
-      setProjectsList(data.projects);
-
-      stopTimer();
+      if (projectsResponse.ok) {
+        const data = await projectsResponse.json();
+        setProjectsList(data.projects);
+      }
     } catch (error) {
       console.error('Error stopping timer:', error);
-      alert('Failed to stop timer. Please try again.');
+      alert(
+        `Failed to stop timer. Your ${elapsedHours}h of work is NOT lost - the timer will keep running. Please try stopping again or check your connection.`
+      );
+      // DON'T call stopTimer() on error - preserve the timer state
     }
-  };
+  }, [currentTimeLogId, activeProjectId, timerType, elapsedSeconds, stopTimer, setProjectsList]);
 
   const handleCompleteProject = async (projectId: string) => {
     try {
@@ -210,7 +221,7 @@ export default function DashboardPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeProjectId, elapsedSeconds, timerType, incrementSeconds]);
+  }, [activeProjectId, elapsedSeconds, timerType, incrementSeconds, handleStopTimer]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -291,7 +302,7 @@ export default function DashboardPage() {
               if (activeProjects.length >= 3) {
                 setShowModal('limit');
               } else {
-                setCurrentView('wizard');
+                router.push('/projects/new');
               }
             }}
             className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-medium"
@@ -306,7 +317,7 @@ export default function DashboardPage() {
             <h3 className="text-gray-900 font-semibold mb-2">No projects yet</h3>
             <p className="text-gray-600 mb-4">Get started by creating your first project</p>
             <button
-              onClick={() => setCurrentView('wizard')}
+              onClick={() => router.push('/projects/new')}
               className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-medium"
             >
               <Plus className="w-4 h-4" />
@@ -435,158 +446,6 @@ export default function DashboardPage() {
     );
   };
 
-  const NewProjectView = () => {
-    const [formData, setFormData] = useState({
-      name: '',
-      description: '',
-      platform: 'n8n' as 'n8n' | 'claude-code' | 'lovable' | 'other',
-      priority: 'medium' as 'low' | 'medium' | 'high',
-      nextAction: '',
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setIsSubmitting(true);
-
-      try {
-        const response = await fetch('/api/projects', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...formData,
-            status: 'planning',
-          }),
-        });
-
-        if (!response.ok) throw new Error('Failed to create project');
-
-        const { project } = await response.json();
-        setProjectsList(prev => [...prev, project]);
-        setCurrentView('home');
-        setFormData({
-          name: '',
-          description: '',
-          platform: 'n8n',
-          priority: 'medium',
-          nextAction: '',
-        });
-      } catch (err) {
-        console.error('Error creating project:', err);
-        alert('Failed to create project. Please try again.');
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-
-    return (
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900">Create New Project</h2>
-            <button
-              onClick={() => setCurrentView('home')}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              Cancel
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Project Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
-                placeholder="e.g., Digital Twins Automation"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
-                rows={3}
-                placeholder="Brief description of the project..."
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Platform
-                </label>
-                <select
-                  value={formData.platform}
-                  onChange={(e) => setFormData({ ...formData, platform: e.target.value as 'n8n' | 'claude-code' | 'lovable' | 'other' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
-                >
-                  <option value="n8n">n8n</option>
-                  <option value="claude-code">Claude Code</option>
-                  <option value="lovable">Lovable</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Priority
-                </label>
-                <select
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Next Action
-              </label>
-              <input
-                type="text"
-                value={formData.nextAction}
-                onChange={(e) => setFormData({ ...formData, nextAction: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
-                placeholder="e.g., Set up development environment"
-              />
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setCurrentView('home')}
-                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Creating...' : 'Create Project'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
 
   const Modal = ({ type }: { type: string }) => {
     if (type === 'complete-confirm') {
@@ -659,9 +518,9 @@ export default function DashboardPage() {
               {activeProjects.map(project => (
                 <button
                   key={project.id}
-                  onClick={() => {
-                    handlePauseProject(project.id);
-                    setCurrentView('wizard');
+                  onClick={async () => {
+                    await handlePauseProject(project.id);
+                    router.push('/projects/new');
                   }}
                   className="w-full text-left px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm"
                 >
@@ -772,12 +631,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-8">
               <h1 className="text-xl font-semibold text-gray-900">Project Autopilot</h1>
               <nav className="flex gap-6">
-                <button
-                  onClick={() => setCurrentView('home')}
-                  className={`text-sm font-medium ${
-                    currentView === 'home' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-900'
-                  }`}
-                >
+                <button className="text-sm font-medium text-gray-900">
                   Overview
                 </button>
                 <button className="text-sm font-medium text-gray-500 hover:text-gray-900">
@@ -810,8 +664,7 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {currentView === 'home' && <HomeView />}
-        {currentView === 'wizard' && <NewProjectView />}
+        <HomeView />
       </main>
 
       {showModal && <Modal type={showModal} />}
