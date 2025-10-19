@@ -217,16 +217,17 @@ export default function DashboardPage() {
   };
 
   // Calculate metrics (memoized to prevent infinite render loop)
+  // FIX: Use projectsList instead of projects to ensure re-calculation on data changes
   const { activeProjects, buildingHours, debuggingHours } = useMemo(() => {
-    const active = projects.filter(p => p.status !== 'complete' && p.status !== 'paused');
-    const building = projects.reduce((sum, p) => sum + (p.buildingHours || 0), 0);
-    const debugging = projects.reduce((sum, p) => sum + (p.debuggingHours || 0), 0);
+    const active = projectsList.filter(p => p.status !== 'complete' && p.status !== 'paused');
+    const building = projectsList.reduce((sum, p) => sum + (p.buildingHours || 0), 0);
+    const debugging = projectsList.reduce((sum, p) => sum + (p.debuggingHours || 0), 0);
 
     console.log('📊 BROWSER: Overview totals calculated:', {
-      totalProjects: projects.length,
+      totalProjects: projectsList.length,
       buildingHours: building,
       debuggingHours: debugging,
-      projectBreakdown: projects.map(p => ({
+      projectBreakdown: projectsList.map(p => ({
         name: p.name,
         buildingHours: p.buildingHours || 0,
         debuggingHours: p.debuggingHours || 0
@@ -234,7 +235,7 @@ export default function DashboardPage() {
     });
 
     return { activeProjects: active, buildingHours: building, debuggingHours: debugging };
-  }, [projects]);
+  }, [projectsList]);
   const completedThisMonth = projects.filter(p => {
     if (!p.completedAt) return false;
     const completedDate = new Date(p.completedAt);
@@ -246,16 +247,23 @@ export default function DashboardPage() {
   // Calculate insights
   const insights = projects
     .filter(p => {
-      const total = p.buildingHours + p.debuggingHours;
-      return total > 0 && (p.debuggingHours / total) > 0.6;
+      const building = p.buildingHours || 0;
+      const debugging = p.debuggingHours || 0;
+      const total = building + debugging;
+      return total > 0 && (debugging / total) > 0.6;
     })
-    .map(p => ({
-      type: 'warning',
-      title: 'Debugging time elevated',
-      description: `${Math.round((p.debuggingHours / (p.buildingHours + p.debuggingHours)) * 100)}% of ${p.name} time spent debugging (${p.debuggingHours.toFixed(1)}h) vs. building (${p.buildingHours.toFixed(1)}h)`,
-      action: 'Review debug logs',
-      projectId: p.id,
-    }));
+    .map(p => {
+      const building = p.buildingHours || 0;
+      const debugging = p.debuggingHours || 0;
+      const total = building + debugging;
+      return {
+        type: 'warning',
+        title: 'Debugging time elevated',
+        description: `${Math.round((debugging / total) * 100)}% of ${p.name} time spent debugging (${debugging.toFixed(1)}h) vs. building (${building.toFixed(1)}h)`,
+        action: 'Review debug logs',
+        projectId: p.id,
+      };
+    });
 
   // Timer logic with nudges
   useEffect(() => {
@@ -277,7 +285,7 @@ export default function DashboardPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeProjectId, elapsedSeconds, timerType, incrementSeconds, handleStopTimer]);
+  }, [activeProjectId, elapsedSeconds, timerType, incrementSeconds, handleStopTimer, setShowModal]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -317,8 +325,9 @@ export default function DashboardPage() {
         <div className="bg-white border border-gray-200 rounded-lg p-5">
           <div className="text-sm text-gray-600 mb-1">Building Hours</div>
           <div className="text-3xl font-semibold text-gray-900">
-            {buildingHours.toFixed(1)}
+            {buildingHours.toFixed(2)}
           </div>
+          {buildingHours === 0 && <div className="text-xs text-red-500">❌ Still 0 - check console logs</div>}
           <div className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
             <TrendingUp className="w-3 h-3" /> this week
           </div>
@@ -326,7 +335,7 @@ export default function DashboardPage() {
         <div className="bg-white border border-gray-200 rounded-lg p-5">
           <div className="text-sm text-gray-600 mb-1">Debugging Hours</div>
           <div className="text-3xl font-semibold text-gray-900">
-            {debuggingHours.toFixed(1)}
+            {debuggingHours.toFixed(2)}
           </div>
           <div className="text-xs text-amber-600 mt-1">this week</div>
         </div>
@@ -410,7 +419,7 @@ export default function DashboardPage() {
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-gray-600">{project.nextAction}</div>
+                    <div className="text-sm text-gray-600">{project.nextAction || 'No next action set'}</div>
                   </div>
                   <button
                     onClick={() => setExpandedProject(expandedProject === project.id ? null : project.id)}
@@ -438,11 +447,11 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                       <div>
                         <div className="text-gray-500 mb-1">Building Time</div>
-                        <div className="font-semibold text-gray-900">{project.buildingHours.toFixed(1)}h</div>
+                        <div className="font-semibold text-gray-900">{(project.buildingHours || 0).toFixed(1)}h</div>
                       </div>
                       <div>
                         <div className="text-gray-500 mb-1">Debugging Time</div>
-                        <div className="font-semibold text-gray-900">{project.debuggingHours.toFixed(1)}h</div>
+                        <div className="font-semibold text-gray-900">{(project.debuggingHours || 0).toFixed(1)}h</div>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -736,46 +745,42 @@ export default function DashboardPage() {
 
             <div className="space-y-4">
               {/* Description */}
-              {project.description && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-1">What will this do?</h3>
-                  <p className="text-gray-900">{project.description}</p>
-                </div>
-              )}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-1">What will this do?</h3>
+                <p className="text-gray-900">{project.description || 'No description provided'}</p>
+                {!project.description && <p className="text-xs text-red-500">❌ description is: {typeof project.description} = {JSON.stringify(project.description)}</p>}
+              </div>
 
               {/* Who will use it */}
-              {project.whoWillUseIt && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-1">Who will use it?</h3>
-                  <p className="text-gray-900">{project.whoWillUseIt}</p>
-                </div>
-              )}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-1">Who will use it?</h3>
+                <p className="text-gray-900">{project.whoWillUseIt || 'Not specified'}</p>
+                {!project.whoWillUseIt && <p className="text-xs text-red-500">❌ whoWillUseIt is: {typeof project.whoWillUseIt} = {JSON.stringify(project.whoWillUseIt)}</p>}
+              </div>
 
               {/* Features */}
-              {project.features && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-1">Features</h3>
-                  <p className="text-gray-900 whitespace-pre-wrap">{project.features}</p>
-                </div>
-              )}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-1">Features</h3>
+                <p className="text-gray-900 whitespace-pre-wrap">{project.features || 'No features listed'}</p>
+                {!project.features && <p className="text-xs text-red-500">❌ features is: {typeof project.features} = {JSON.stringify(project.features)}</p>}
+              </div>
 
               {/* Complexity */}
-              {project.complexity && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-1">Complexity</h3>
-                  <p className="text-gray-900 capitalize">{project.complexity}</p>
-                </div>
-              )}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-1">Complexity</h3>
+                <p className="text-gray-900 capitalize">{project.complexity || 'Not specified'}</p>
+                {!project.complexity && <p className="text-xs text-red-500">❌ complexity is: {typeof project.complexity} = {JSON.stringify(project.complexity)}</p>}
+              </div>
 
               {/* Time tracking */}
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-1">Building Hours</h3>
-                  <p className="text-2xl font-semibold text-gray-900">{project.buildingHours.toFixed(1)}h</p>
+                  <p className="text-2xl font-semibold text-gray-900">{(project.buildingHours || 0).toFixed(1)}h</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-1">Debugging Hours</h3>
-                  <p className="text-2xl font-semibold text-gray-900">{project.debuggingHours.toFixed(1)}h</p>
+                  <p className="text-2xl font-semibold text-gray-900">{(project.debuggingHours || 0).toFixed(1)}h</p>
                 </div>
               </div>
 

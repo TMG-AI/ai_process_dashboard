@@ -63,7 +63,15 @@ export async function createProject(userId: string, projectData: Omit<Project, '
 
 export async function getProject(projectId: string): Promise<Project | null> {
   const data = await redis.get<Project>(`project:${projectId}`);
-  return data;
+  if (!data) return null;
+
+  // Ensure critical fields exist (backward compatibility)
+  return {
+    ...data,
+    buildingHours: data.buildingHours ?? 0,
+    debuggingHours: data.debuggingHours ?? 0,
+    progress: data.progress ?? 0,
+  };
 }
 
 export async function getUserProjects(userId: string): Promise<Project[]> {
