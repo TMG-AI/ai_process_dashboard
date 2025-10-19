@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Clock, Play, Pause, AlertCircle, CheckCircle2, Plus, ChevronDown, TrendingUp, Trash2, Eye, Edit } from 'lucide-react';
 import { Project } from '@/lib/types';
 import { useTimerStore } from '@/lib/store/timer-store';
+import {
+  DebugSixtyMinModal,
+  DebugNinetyMinModal,
+  BuildingTwoHourModal,
+  ProjectLimiterModal
+} from '@/components/modals/TimerModals';
 
 // Helper function to format platform names
 const formatPlatform = (platform?: string) => {
@@ -28,6 +34,10 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [isEditingProject, setIsEditingProject] = useState(false);
   const [editedProject, setEditedProject] = useState<Partial<Project>>({});
+  const [showDebug60Modal, setShowDebug60Modal] = useState(false);
+  const [showDebug90Modal, setShowDebug90Modal] = useState(false);
+  const [showBuilding2HrModal, setShowBuilding2HrModal] = useState(false);
+  const [showLimiterModal, setShowLimiterModal] = useState(false);
 
   // Zustand timer store
   const {
@@ -240,6 +250,69 @@ export default function DashboardPage() {
     }
   };
 
+  // Handle debug 60min modal
+  const handleDebug60Continue = async (data: { attempts: string; hypothesis: string }) => {
+    try {
+      await fetch('/api/debuglog/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: activeProjectId,
+          attempts: data.attempts,
+          hypothesis: data.hypothesis,
+          timeSpentMinutes: 60,
+        }),
+      });
+
+      // Continue for 30 more minutes
+      setShowDebug60Modal(false);
+    } catch (error) {
+      console.error('Error saving debug log:', error);
+    }
+  };
+
+  const handleDebug60SwitchTasks = () => {
+    handleStopTimer();
+    setShowDebug60Modal(false);
+  };
+
+  // Handle debug 90min modal
+  const handleDebug90End = () => {
+    handleStopTimer();
+    setShowDebug90Modal(false);
+  };
+
+  // Handle building 2hr modal
+  const handleBuilding2HrContinue = () => {
+    setShowBuilding2HrModal(false);
+  };
+
+  const handleBuilding2HrBreak = () => {
+    handleStopTimer();
+    setShowBuilding2HrModal(false);
+  };
+
+  // Handle project limiter
+  const handlePauseProjectForNew = async (projectId: string) => {
+    try {
+      await fetch('/api/projects/pause', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId }),
+      });
+
+      // Refresh projects
+      const response = await fetch('/api/projects');
+      const data = await response.json();
+      setProjectsList(data.projects || []);
+
+      setShowLimiterModal(false);
+      router.push('/projects/new');
+    } catch (error) {
+      console.error('Error pausing project:', error);
+    }
+  };
+
   // Calculate metrics (memoized to prevent infinite render loop)
   // FIX: Use projectsList instead of projects to ensure re-calculation on data changes
   const { activeProjects, buildingHours, debuggingHours } = useMemo(() => {
@@ -298,18 +371,18 @@ export default function DashboardPage() {
 
       // Check for nudges
       if (timerType === 'debugging') {
-        if (elapsedSeconds === 3600) setShowModal('debug-60min'); // 60 minutes
+        if (elapsedSeconds === 3600) setShowDebug60Modal(true); // 60 minutes
         if (elapsedSeconds === 5400) { // 90 minutes
-          setShowModal('debug-90min');
+          setShowDebug90Modal(true);
           handleStopTimer();
         }
       } else if (timerType === 'building') {
-        if (elapsedSeconds === 7200) setShowModal('building-2hr'); // 2 hours
+        if (elapsedSeconds === 7200) setShowBuilding2HrModal(true); // 2 hours
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeProjectId, elapsedSeconds, timerType, incrementSeconds, handleStopTimer, setShowModal]);
+  }, [activeProjectId, elapsedSeconds, timerType, incrementSeconds, handleStopTimer]);
 
   // Format seconds to h:mm:ss
   const formatTime = (seconds: number) => {
@@ -400,7 +473,7 @@ export default function DashboardPage() {
           <button
             onClick={() => {
               if (activeProjects.length >= 3) {
-                setShowModal('limit');
+                setShowLimiterModal(true);
               } else {
                 router.push('/projects/new');
               }
@@ -1069,6 +1142,38 @@ export default function DashboardPage() {
       </main>
 
       {showModal && <Modal type={showModal} />}
+
+      <DebugSixtyMinModal
+        isOpen={showDebug60Modal}
+        onClose={() => setShowDebug60Modal(false)}
+        onContinue={handleDebug60Continue}
+        onSwitchTasks={handleDebug60SwitchTasks}
+      />
+
+      <DebugNinetyMinModal
+        isOpen={showDebug90Modal}
+        onEnd={handleDebug90End}
+      />
+
+      <BuildingTwoHourModal
+        isOpen={showBuilding2HrModal}
+        onClose={() => setShowBuilding2HrModal(false)}
+        onContinue={handleBuilding2HrContinue}
+        onTakeBreak={handleBuilding2HrBreak}
+      />
+
+      <ProjectLimiterModal
+        isOpen={showLimiterModal}
+        onClose={() => setShowLimiterModal(false)}
+        projects={activeProjects.map(p => ({
+          id: p.id,
+          name: p.name,
+          progress: p.progress,
+          buildingHours: p.buildingHours,
+          debuggingHours: p.debuggingHours,
+        }))}
+        onPauseProject={handlePauseProjectForNew}
+      />
     </div>
   );
 }
