@@ -43,6 +43,11 @@ export interface Project extends ProjectBase {
   targetCompletion?: string;
   platform?: 'n8n' | 'claude-code' | 'lovable' | 'other';
 
+  // Deployment and repository links
+  vercelUrl?: string;
+  githubUrl?: string;
+  n8nWorkflowJson?: string; // JSON string of the n8n workflow
+
   // Legacy fields (kept for backward compatibility)
   problemStatement?: string;
   targetUser?: string;

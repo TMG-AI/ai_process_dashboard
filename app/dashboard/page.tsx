@@ -793,6 +793,8 @@ export default function DashboardPage() {
                         complexity: project.complexity,
                         priority: project.priority,
                         targetCompletion: project.targetCompletion,
+                        vercelUrl: project.vercelUrl,
+                        githubUrl: project.githubUrl,
                       });
                     }}
                     className="text-gray-600 hover:text-gray-900 p-2"
@@ -880,6 +882,67 @@ export default function DashboardPage() {
                   <p className="text-base text-gray-700 capitalize">{project.complexity || 'Not specified'}</p>
                 )}
               </div>
+
+              {/* Vercel Site URL */}
+              <div>
+                <h3 className="text-base font-bold text-gray-900 mb-2">Vercel Site</h3>
+                {isEditingProject ? (
+                  <input
+                    type="url"
+                    value={editedProject.vercelUrl || ''}
+                    onChange={(e) => setEditedProject({ ...editedProject, vercelUrl: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-base"
+                    placeholder="https://your-project.vercel.app"
+                  />
+                ) : project.vercelUrl ? (
+                  <a href={project.vercelUrl} target="_blank" rel="noopener noreferrer" className="text-base text-blue-600 hover:text-blue-800 underline">
+                    {project.vercelUrl}
+                  </a>
+                ) : (
+                  <p className="text-base text-gray-700">Not specified</p>
+                )}
+              </div>
+
+              {/* GitHub Repo URL */}
+              <div>
+                <h3 className="text-base font-bold text-gray-900 mb-2">GitHub Repo</h3>
+                {isEditingProject ? (
+                  <input
+                    type="url"
+                    value={editedProject.githubUrl || ''}
+                    onChange={(e) => setEditedProject({ ...editedProject, githubUrl: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-base"
+                    placeholder="https://github.com/username/repo"
+                  />
+                ) : project.githubUrl ? (
+                  <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className="text-base text-blue-600 hover:text-blue-800 underline">
+                    {project.githubUrl}
+                  </a>
+                ) : (
+                  <p className="text-base text-gray-700">Not specified</p>
+                )}
+              </div>
+
+              {/* N8N Workflow JSON */}
+              {project.n8nWorkflowJson && (
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 mb-2">N8N Workflow</h3>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([project.n8nWorkflowJson!], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${project.name}-workflow.json`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+                  >
+                    Download Workflow JSON
+                  </button>
+                </div>
+              )}
 
               {/* Time tracking */}
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">

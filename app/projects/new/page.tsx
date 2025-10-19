@@ -13,19 +13,32 @@ interface ProjectFormData {
   complexity: 'simple' | 'medium' | 'complex';
   priority: 'low' | 'medium' | 'high';
   targetCompletion?: string;
+  vercelUrl?: string;
+  githubUrl?: string;
+  n8nWorkflowJson?: string;
 }
 
 export default function NewProjectPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [n8nFile, setN8nFile] = useState<File | null>(null);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<ProjectFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<ProjectFormData>({
     defaultValues: {
       priority: 'medium',
       platform: 'n8n',
       complexity: 'medium',
     }
   });
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setN8nFile(file);
+      const text = await file.text();
+      setValue('n8nWorkflowJson', text);
+    }
+  };
 
   const onSubmit = async (data: ProjectFormData) => {
     setIsSubmitting(true);
@@ -39,6 +52,9 @@ export default function NewProjectPage() {
       complexity: data.complexity,
       priority: data.priority,
       targetCompletion: data.targetCompletion,
+      vercelUrl: data.vercelUrl,
+      githubUrl: data.githubUrl,
+      n8nWorkflowJson: data.n8nWorkflowJson,
       status: 'planning',
     };
 
@@ -202,6 +218,50 @@ export default function NewProjectPage() {
                 type="date"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               />
+            </div>
+
+            {/* Vercel Site URL */}
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Vercel Site URL
+              </label>
+              <input
+                {...register('vercelUrl')}
+                type="url"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                placeholder="https://your-project.vercel.app"
+              />
+            </div>
+
+            {/* GitHub Repo URL */}
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                GitHub Repo URL
+              </label>
+              <input
+                {...register('githubUrl')}
+                type="url"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                placeholder="https://github.com/username/repo"
+              />
+            </div>
+
+            {/* N8N Workflow JSON */}
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                N8N Workflow JSON File
+              </label>
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleFileUpload}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              />
+              {n8nFile && (
+                <p className="text-sm text-gray-600 mt-1">
+                  Selected: {n8nFile.name}
+                </p>
+              )}
             </div>
           </div>
 
