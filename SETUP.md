@@ -34,8 +34,8 @@ All the Redis data layer and frontend integration is DONE! Here's what's been bu
    - **Name:** `ai-project-autopilot` (or whatever you want)
 5. Click **"Create"**
 6. After creation, you'll see two important values:
-   - `UPSTASH_REDIS_REST_URL` (starts with `https://`)
-   - `UPSTASH_REDIS_REST_TOKEN` (long string)
+   - `AI_REDIS_REST_URL` (starts with `https://`)
+   - `AI_REDIS_REST_TOKEN` (long string)
 
 ### Step 2: Test Locally (Optional)
 
@@ -44,8 +44,8 @@ If you want to test on your computer before deploying:
 1. Open `.env.local` in the project root
 2. Replace the placeholder values with your actual Upstash credentials:
    ```env
-   UPSTASH_REDIS_REST_URL=https://your-actual-url.upstash.io
-   UPSTASH_REDIS_REST_TOKEN=your_actual_token_here
+   AI_REDIS_REST_URL=https://your-actual-url.upstash.io
+   AI_REDIS_REST_TOKEN=your_actual_token_here
    ```
 3. Run the development server:
    ```bash
@@ -71,8 +71,8 @@ If you want to test on your computer before deploying:
 3. **Add Environment Variables in Vercel:**
    - Before clicking "Deploy", expand **"Environment Variables"**
    - Add:
-     - `UPSTASH_REDIS_REST_URL` → (paste your Upstash URL)
-     - `UPSTASH_REDIS_REST_TOKEN` → (paste your Upstash token)
+     - `AI_REDIS_REST_URL` → (paste your Upstash URL)
+     - `AI_REDIS_REST_TOKEN` → (paste your Upstash token)
      - `NEXTAUTH_URL` → `https://your-project-name.vercel.app` (Vercel will show you this)
      - `NEXTAUTH_SECRET` → Generate one at https://generate-secret.vercel.app/32
 
