@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Clock, Play, Pause, AlertCircle, CheckCircle2, Plus, ChevronDown, TrendingUp, Trash2 } from 'lucide-react';
+import { Clock, Play, Pause, AlertCircle, CheckCircle2, Plus, ChevronDown, TrendingUp, Trash2, Eye, Edit } from 'lucide-react';
 import { Project } from '@/lib/types';
 import { useTimerStore } from '@/lib/store/timer-store';
 
@@ -26,6 +26,8 @@ export default function DashboardPage() {
   const [projectsList, setProjectsList] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditingProject, setIsEditingProject] = useState(false);
+  const [editedProject, setEditedProject] = useState<Partial<Project>>({});
 
   // Zustand timer store
   const {
@@ -216,6 +218,28 @@ export default function DashboardPage() {
     }
   };
 
+  const handleSaveProjectEdits = async () => {
+    if (!selectedProjectId) return;
+
+    try {
+      const response = await fetch(`/api/projects/${selectedProjectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editedProject),
+      });
+
+      if (!response.ok) throw new Error('Failed to update project');
+
+      const { project } = await response.json();
+      setProjectsList(prev => prev.map(p => p.id === selectedProjectId ? project : p));
+      setIsEditingProject(false);
+      setEditedProject({});
+    } catch (err) {
+      console.error('Error updating project:', err);
+      alert('Failed to update project. Please try again.');
+    }
+  };
+
   // Calculate metrics (memoized to prevent infinite render loop)
   // FIX: Use projectsList instead of projects to ensure re-calculation on data changes
   const { activeProjects, buildingHours, debuggingHours } = useMemo(() => {
@@ -400,15 +424,19 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
-                      <h3
-                        className="font-semibold text-gray-900 cursor-pointer hover:text-gray-700"
+                      <h3 className="font-semibold text-gray-900">
+                        {project.name}
+                      </h3>
+                      <button
                         onClick={() => {
                           setSelectedProjectId(project.id);
                           setShowModal('project-details');
                         }}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                        title="View project details"
                       >
-                        {project.name}
-                      </h3>
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                         {formatPlatform(project.platform)}
                       </span>
@@ -420,6 +448,18 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <div className="text-sm text-gray-600">{project.nextAction || 'No next action set'}</div>
+                    <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span className="font-medium text-gray-700">{(project.buildingHours || 0).toFixed(1)}h</span>
+                        <span>building</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        <span className="font-medium text-gray-700">{(project.debuggingHours || 0).toFixed(1)}h</span>
+                        <span>debugging</span>
+                      </div>
+                    </div>
                   </div>
                   <button
                     onClick={() => setExpandedProject(expandedProject === project.id ? null : project.id)}
@@ -730,46 +770,104 @@ export default function DashboardPage() {
                   </span>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  setShowModal(null);
-                  setSelectedProjectId(null);
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex gap-2">
+                {!isEditingProject && (
+                  <button
+                    onClick={() => {
+                      setIsEditingProject(true);
+                      setEditedProject({
+                        description: project.description,
+                        whoWillUseIt: project.whoWillUseIt,
+                        features: project.features,
+                        complexity: project.complexity,
+                        priority: project.priority,
+                        targetCompletion: project.targetCompletion,
+                      });
+                    }}
+                    className="text-gray-600 hover:text-gray-900 p-2"
+                    title="Edit project details"
+                  >
+                    <Edit className="w-5 h-5" />
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setShowModal(null);
+                    setSelectedProjectId(null);
+                    setIsEditingProject(false);
+                    setEditedProject({});
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4">
               {/* Description */}
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-1">What will this do?</h3>
-                <p className="text-gray-900">{project.description || 'No description provided'}</p>
-                {!project.description && <p className="text-xs text-red-500">❌ description is: {typeof project.description} = {JSON.stringify(project.description)}</p>}
+                {isEditingProject ? (
+                  <input
+                    type="text"
+                    value={editedProject.description || ''}
+                    onChange={(e) => setEditedProject({ ...editedProject, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900">{project.description || 'No description provided'}</p>
+                )}
               </div>
 
               {/* Who will use it */}
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-1">Who will use it?</h3>
-                <p className="text-gray-900">{project.whoWillUseIt || 'Not specified'}</p>
-                {!project.whoWillUseIt && <p className="text-xs text-red-500">❌ whoWillUseIt is: {typeof project.whoWillUseIt} = {JSON.stringify(project.whoWillUseIt)}</p>}
+                {isEditingProject ? (
+                  <input
+                    type="text"
+                    value={editedProject.whoWillUseIt || ''}
+                    onChange={(e) => setEditedProject({ ...editedProject, whoWillUseIt: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900">{project.whoWillUseIt || 'Not specified'}</p>
+                )}
               </div>
 
               {/* Features */}
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-1">Features</h3>
-                <p className="text-gray-900 whitespace-pre-wrap">{project.features || 'No features listed'}</p>
-                {!project.features && <p className="text-xs text-red-500">❌ features is: {typeof project.features} = {JSON.stringify(project.features)}</p>}
+                {isEditingProject ? (
+                  <textarea
+                    value={editedProject.features || ''}
+                    onChange={(e) => setEditedProject({ ...editedProject, features: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900 whitespace-pre-wrap">{project.features || 'No features listed'}</p>
+                )}
               </div>
 
               {/* Complexity */}
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-1">Complexity</h3>
-                <p className="text-gray-900 capitalize">{project.complexity || 'Not specified'}</p>
-                {!project.complexity && <p className="text-xs text-red-500">❌ complexity is: {typeof project.complexity} = {JSON.stringify(project.complexity)}</p>}
+                {isEditingProject ? (
+                  <select
+                    value={editedProject.complexity || project.complexity}
+                    onChange={(e) => setEditedProject({ ...editedProject, complexity: e.target.value as 'simple' | 'medium' | 'complex' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                  >
+                    <option value="simple">Simple</option>
+                    <option value="medium">Medium</option>
+                    <option value="complex">Complex</option>
+                  </select>
+                ) : (
+                  <p className="text-gray-900 capitalize">{project.complexity || 'Not specified'}</p>
+                )}
               </div>
 
               {/* Time tracking */}
@@ -814,15 +912,35 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowModal(null);
-                  setSelectedProjectId(null);
-                }}
-                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-              >
-                Close
-              </button>
+              {isEditingProject ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setIsEditingProject(false);
+                      setEditedProject({});
+                    }}
+                    className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveProjectEdits}
+                    className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-medium"
+                  >
+                    Save Changes
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    setShowModal(null);
+                    setSelectedProjectId(null);
+                  }}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                >
+                  Close
+                </button>
+              )}
             </div>
           </div>
         </div>
