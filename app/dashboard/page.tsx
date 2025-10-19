@@ -312,8 +312,13 @@ export default function DashboardPage() {
   }, [activeProjectId, elapsedSeconds, timerType, incrementSeconds, handleStopTimer, setShowModal]);
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
+
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -451,12 +456,22 @@ export default function DashboardPage() {
                     <div className="flex gap-4 mt-2 text-xs text-gray-500">
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        <span className="font-medium text-gray-700">{(project.buildingHours || 0).toFixed(1)}h</span>
+                        <span className="font-medium text-gray-700">
+                          {(
+                            (project.buildingHours || 0) +
+                            (activeProjectId === project.id && timerType === 'building' ? elapsedSeconds / 3600 : 0)
+                          ).toFixed(2)}h
+                        </span>
                         <span>building</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />
-                        <span className="font-medium text-gray-700">{(project.debuggingHours || 0).toFixed(1)}h</span>
+                        <span className="font-medium text-gray-700">
+                          {(
+                            (project.debuggingHours || 0) +
+                            (activeProjectId === project.id && timerType === 'debugging' ? elapsedSeconds / 3600 : 0)
+                          ).toFixed(2)}h
+                        </span>
                         <span>debugging</span>
                       </div>
                     </div>
@@ -484,16 +499,6 @@ export default function DashboardPage() {
 
                 {expandedProject === project.id && (
                   <div className="mb-3 pt-3 border-t border-gray-100">
-                    <div className="grid grid-cols-2 gap-4 text-sm mb-3">
-                      <div>
-                        <div className="text-gray-500 mb-1">Building Time</div>
-                        <div className="font-semibold text-gray-900">{(project.buildingHours || 0).toFixed(1)}h</div>
-                      </div>
-                      <div>
-                        <div className="text-gray-500 mb-1">Debugging Time</div>
-                        <div className="font-semibold text-gray-900">{(project.debuggingHours || 0).toFixed(1)}h</div>
-                      </div>
-                    </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
@@ -806,67 +811,67 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* Description */}
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-1">What will this do?</h3>
+                <h3 className="text-base font-bold text-gray-900 mb-2">What will this do?</h3>
                 {isEditingProject ? (
                   <input
                     type="text"
                     value={editedProject.description || ''}
                     onChange={(e) => setEditedProject({ ...editedProject, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-base"
                   />
                 ) : (
-                  <p className="text-gray-900">{project.description || 'No description provided'}</p>
+                  <p className="text-base text-gray-700">{project.description || 'No description provided'}</p>
                 )}
               </div>
 
               {/* Who will use it */}
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-1">Who will use it?</h3>
+                <h3 className="text-base font-bold text-gray-900 mb-2">Who will use it?</h3>
                 {isEditingProject ? (
                   <input
                     type="text"
                     value={editedProject.whoWillUseIt || ''}
                     onChange={(e) => setEditedProject({ ...editedProject, whoWillUseIt: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-base"
                   />
                 ) : (
-                  <p className="text-gray-900">{project.whoWillUseIt || 'Not specified'}</p>
+                  <p className="text-base text-gray-700">{project.whoWillUseIt || 'Not specified'}</p>
                 )}
               </div>
 
               {/* Features */}
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-1">Features</h3>
+                <h3 className="text-base font-bold text-gray-900 mb-2">Features</h3>
                 {isEditingProject ? (
                   <textarea
                     value={editedProject.features || ''}
                     onChange={(e) => setEditedProject({ ...editedProject, features: e.target.value })}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-base"
                   />
                 ) : (
-                  <p className="text-gray-900 whitespace-pre-wrap">{project.features || 'No features listed'}</p>
+                  <p className="text-base text-gray-700 whitespace-pre-wrap">{project.features || 'No features listed'}</p>
                 )}
               </div>
 
               {/* Complexity */}
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-1">Complexity</h3>
+                <h3 className="text-base font-bold text-gray-900 mb-2">Complexity</h3>
                 {isEditingProject ? (
                   <select
                     value={editedProject.complexity || project.complexity}
                     onChange={(e) => setEditedProject({ ...editedProject, complexity: e.target.value as 'simple' | 'medium' | 'complex' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent text-base"
                   >
                     <option value="simple">Simple</option>
                     <option value="medium">Medium</option>
                     <option value="complex">Complex</option>
                   </select>
                 ) : (
-                  <p className="text-gray-900 capitalize">{project.complexity || 'Not specified'}</p>
+                  <p className="text-base text-gray-700 capitalize">{project.complexity || 'Not specified'}</p>
                 )}
               </div>
 
