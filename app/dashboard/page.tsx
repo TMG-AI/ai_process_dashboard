@@ -84,10 +84,22 @@ export default function DashboardPage() {
 
   // Stop timer (wrapped in useCallback to prevent unnecessary re-renders in useEffect)
   const handleStopTimer = useCallback(async () => {
-    if (!currentTimeLogId || !activeProjectId || !timerType) return;
+    if (!currentTimeLogId || !activeProjectId || !timerType) {
+      console.log('❌ Cannot stop timer - missing data:', { currentTimeLogId, activeProjectId, timerType });
+      return;
+    }
 
     const elapsedMinutes = Math.floor(elapsedSeconds / 60);
     const elapsedHours = (elapsedMinutes / 60).toFixed(1);
+
+    console.log('⏱️ Stopping timer:', {
+      timeLogId: currentTimeLogId,
+      projectId: activeProjectId,
+      timerType,
+      elapsedSeconds,
+      elapsedMinutes,
+      elapsedHours
+    });
 
     try {
       const response = await fetch('/api/timelog/stop', {
@@ -101,22 +113,28 @@ export default function DashboardPage() {
         }),
       });
 
+      const result = await response.json();
+      console.log('🔍 Stop timer API response:', { status: response.status, result });
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to stop timer');
+        throw new Error(result.error || 'Failed to stop timer');
       }
 
       // Only reset timer after successful API call
       stopTimer();
+      console.log('✅ Timer stopped and reset');
 
       // Refresh projects to get updated hours
       const projectsResponse = await fetch('/api/projects');
       if (projectsResponse.ok) {
         const data = await projectsResponse.json();
+        console.log('📊 Refreshed projects:', data.projects);
         setProjectsList(data.projects);
+      } else {
+        console.error('❌ Failed to refresh projects');
       }
     } catch (error) {
-      console.error('Error stopping timer:', error);
+      console.error('❌ Error stopping timer:', error);
       alert(
         `Failed to stop timer. Your ${elapsedHours}h of work is NOT lost - the timer will keep running. Please try stopping again or check your connection.`
       );

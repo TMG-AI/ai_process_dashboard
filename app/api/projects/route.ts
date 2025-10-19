@@ -9,9 +9,11 @@ const TEMP_USER_ID = 'user_local_dev';
 export async function GET() {
   try {
     const projects = await getUserProjects(TEMP_USER_ID);
+    console.log(`🔵 API: Fetched ${projects.length} projects for ${TEMP_USER_ID}`);
+    console.log('📊 API: Projects data:', JSON.stringify(projects, null, 2));
     return NextResponse.json({ projects });
   } catch (error) {
-    console.error('Error fetching projects:', error);
+    console.error('❌ API: Error fetching projects:', error);
     return NextResponse.json(
       { error: 'Failed to fetch projects. Make sure your Redis credentials are set in .env.local' },
       { status: 500 }

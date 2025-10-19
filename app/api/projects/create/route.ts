@@ -31,12 +31,14 @@ export async function POST(request: NextRequest) {
     }
 
     const projectData = await request.json();
+    console.log('🔵 API: Creating project with data:', projectData);
 
     const project = await createProject(userId, projectData);
+    console.log('✅ API: Project created:', project);
 
     return NextResponse.json({ project }, { status: 201 });
   } catch (error) {
-    console.error('Error creating project:', error);
+    console.error('❌ API: Error creating project:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to create project' },
       { status: 500 }
