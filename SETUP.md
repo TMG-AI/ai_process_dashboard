@@ -33,9 +33,9 @@ All the Redis data layer and frontend integration is DONE! Here's what's been bu
    - **Region:** Choose closest to you
    - **Name:** `ai-project-autopilot` (or whatever you want)
 5. Click **"Create"**
-6. After creation, you'll see two important values:
-   - `AI_REDIS_REST_URL` (starts with `https://`)
-   - `AI_REDIS_REST_TOKEN` (long string)
+6. After creation, Vercel will automatically add these environment variables:
+   - `AI_KV_REST_API_URL` (starts with `https://`)
+   - `AI_KV_REST_API_TOKEN` (long string)
 
 ### Step 2: Test Locally (Optional)
 
@@ -44,8 +44,8 @@ If you want to test on your computer before deploying:
 1. Open `.env.local` in the project root
 2. Replace the placeholder values with your actual Upstash credentials:
    ```env
-   AI_REDIS_REST_URL=https://your-actual-url.upstash.io
-   AI_REDIS_REST_TOKEN=your_actual_token_here
+   AI_KV_REST_API_URL=https://your-actual-url.upstash.io
+   AI_KV_REST_API_TOKEN=your_actual_token_here
    ```
 3. Run the development server:
    ```bash
@@ -69,11 +69,12 @@ If you want to test on your computer before deploying:
    - Import your `ai-project-autopilot` repository
 
 3. **Add Environment Variables in Vercel:**
-   - Before clicking "Deploy", expand **"Environment Variables"**
-   - Add:
-     - `AI_REDIS_REST_URL` → (paste your Upstash URL)
-     - `AI_REDIS_REST_TOKEN` → (paste your Upstash token)
-     - `NEXTAUTH_URL` → `https://your-project-name.vercel.app` (Vercel will show you this)
+   - Vercel should automatically add the Upstash variables when you connect the integration
+   - If not, manually add:
+     - `AI_KV_REST_API_URL` → (paste your Upstash URL)
+     - `AI_KV_REST_API_TOKEN` → (paste your Upstash token)
+   - Optional for future auth:
+     - `NEXTAUTH_URL` → `https://your-project-name.vercel.app`
      - `NEXTAUTH_SECRET` → Generate one at https://generate-secret.vercel.app/32
 
 4. **Click "Deploy"**

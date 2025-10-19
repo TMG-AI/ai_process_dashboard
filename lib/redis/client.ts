@@ -2,10 +2,10 @@ import { Redis } from '@upstash/redis';
 
 // Check if valid Redis credentials are configured
 const hasValidRedisConfig =
-  process.env.AI_REDIS_REST_URL &&
-  process.env.AI_REDIS_REST_TOKEN &&
-  process.env.AI_REDIS_REST_URL.startsWith('https://') &&
-  !process.env.AI_REDIS_REST_URL.includes('your_url_here');
+  process.env.AI_KV_REST_API_URL &&
+  process.env.AI_KV_REST_API_TOKEN &&
+  process.env.AI_KV_REST_API_URL.startsWith('https://') &&
+  !process.env.AI_KV_REST_API_URL.includes('your_url_here');
 
 if (!hasValidRedisConfig && typeof window !== 'undefined') {
   // Only throw error at runtime, not during build
@@ -14,8 +14,8 @@ if (!hasValidRedisConfig && typeof window !== 'undefined') {
 
 export const redis = (hasValidRedisConfig
   ? new Redis({
-      url: process.env.AI_REDIS_REST_URL!,
-      token: process.env.AI_REDIS_REST_TOKEN!,
+      url: process.env.AI_KV_REST_API_URL!,
+      token: process.env.AI_KV_REST_API_TOKEN!,
     })
   : null) as Redis; // Placeholder during build - will be properly initialized in production
 
