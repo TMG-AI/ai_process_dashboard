@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
+import { PRDBuilderModal } from '@/components/modals/PRDBuilderModal';
+import type { ProjectPRD } from '@/lib/types';
 
 interface ProjectFormData {
   name: string;
@@ -22,6 +24,8 @@ export default function NewProjectPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [n8nFile, setN8nFile] = useState<File | null>(null);
+  const [showPRDModal, setShowPRDModal] = useState(false);
+  const [basicProjectData, setBasicProjectData] = useState<ProjectFormData | null>(null);
 
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<ProjectFormData>({
     defaultValues: {
@@ -41,21 +45,30 @@ export default function NewProjectPage() {
   };
 
   const onSubmit = async (data: ProjectFormData) => {
+    // Save basic project data and show PRD modal
+    setBasicProjectData(data);
+    setShowPRDModal(true);
+  };
+
+  const handlePRDComplete = async (prd: ProjectPRD) => {
+    if (!basicProjectData) return;
+
     setIsSubmitting(true);
 
     const projectData = {
-      name: data.name,
-      description: data.description,
-      whoWillUseIt: data.whoWillUseIt,
-      platform: data.platform,
-      features: data.features,
-      complexity: data.complexity,
-      priority: data.priority,
-      targetCompletion: data.targetCompletion,
-      vercelUrl: data.vercelUrl,
-      githubUrl: data.githubUrl,
-      n8nWorkflowJson: data.n8nWorkflowJson,
+      name: basicProjectData.name,
+      description: basicProjectData.description,
+      whoWillUseIt: basicProjectData.whoWillUseIt,
+      platform: basicProjectData.platform,
+      features: basicProjectData.features,
+      complexity: basicProjectData.complexity,
+      priority: basicProjectData.priority,
+      targetCompletion: basicProjectData.targetCompletion,
+      vercelUrl: basicProjectData.vercelUrl,
+      githubUrl: basicProjectData.githubUrl,
+      n8nWorkflowJson: basicProjectData.n8nWorkflowJson,
       status: 'planning',
+      prd, // Include the PRD
     };
 
     console.log('🚀 BROWSER: Submitting project with data:', projectData);
@@ -82,6 +95,7 @@ export default function NewProjectPage() {
       alert('Failed to create project. Please try again.');
     } finally {
       setIsSubmitting(false);
+      setShowPRDModal(false);
     }
   };
 
@@ -284,6 +298,21 @@ export default function NewProjectPage() {
           </div>
         </form>
       </main>
+
+      {/* PRD Builder Modal */}
+      {showPRDModal && basicProjectData && (
+        <PRDBuilderModal
+          isOpen={showPRDModal}
+          onClose={() => setShowPRDModal(false)}
+          onSave={handlePRDComplete}
+          initialData={{
+            name: basicProjectData.name,
+            description: basicProjectData.description,
+            whoWillUseIt: basicProjectData.whoWillUseIt,
+            platform: basicProjectData.platform,
+          }}
+        />
+      )}
     </div>
   );
 }

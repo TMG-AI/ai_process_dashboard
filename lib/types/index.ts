@@ -1,5 +1,40 @@
 // Project Types
 
+// PRD (Product Requirements Document) Interface
+export interface ProjectPRD {
+  // Overview (using existing project fields: name, description, whoWillUseIt)
+  whyBuilding?: string; // Business value / problem it solves
+
+  // Technical Approach
+  apisRequired?: string[]; // List of APIs needed (Anthropic, OpenAI, Stripe, etc.)
+  dataStorage?: string; // What data needs to be stored and where
+  authenticationNeeds?: string; // Auth requirements
+
+  // Learning & Research
+  learningNeeds?: string[]; // What needs to be learned first
+  researchEffort?: 'low' | 'medium' | 'high'; // Estimated research time
+  resources?: string[]; // Links to docs, tutorials, examples
+
+  // Prerequisites & Dependencies
+  externalDependencies?: Array<{
+    type: 'colleague-input' | 'api-key' | 'service-access' | 'data-source' | 'other';
+    description: string;
+    who?: string; // For colleague inputs
+    neededBy?: string; // Date if applicable
+  }>;
+  anticipatedBlockers?: string[]; // Potential blockers to watch for
+
+  // Risk Assessment
+  knownRisks?: string[]; // What could go wrong
+  complexityScore?: number; // 1-10, AI-evaluated
+  confidenceLevel?: 'high' | 'medium' | 'low'; // How clear is the path
+
+  // Metadata
+  createdAt?: string;
+  updatedAt?: string;
+  completenessScore?: number; // 0-100, AI-calculated
+}
+
 // Base project interface - minimal required fields for all projects
 export interface ProjectBase {
   id: string;
@@ -42,6 +77,9 @@ export interface Project extends ProjectBase {
   complexity?: 'simple' | 'medium' | 'complex';
   targetCompletion?: string;
   platform?: 'n8n' | 'claude-code' | 'lovable' | 'other';
+
+  // PRD (Product Requirements Document)
+  prd?: ProjectPRD;
 
   // Deployment and repository links
   vercelUrl?: string;

@@ -13,6 +13,8 @@ import {
   ProjectLimiterModal
 } from '@/components/modals/TimerModals';
 import { StopLearningModal, ManualLearningModal } from '@/components/modals/LearningModals';
+import { PRDBuilderModal } from '@/components/modals/PRDBuilderModal';
+import type { ProjectPRD } from '@/lib/types';
 
 // Helper function to format platform names
 const formatPlatform = (platform?: string) => {
@@ -40,6 +42,7 @@ export default function DashboardPage() {
   const [showDebug90Modal, setShowDebug90Modal] = useState(false);
   const [showBuilding2HrModal, setShowBuilding2HrModal] = useState(false);
   const [showLimiterModal, setShowLimiterModal] = useState(false);
+  const [showPRDModal, setShowPRDModal] = useState(false);
 
   // Flags to prevent modals from showing multiple times
   const [has60ModalShown, setHas60ModalShown] = useState(false);
@@ -299,6 +302,28 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('Error updating project:', err);
       alert('Failed to update project. Please try again.');
+    }
+  };
+
+  const handleSavePRD = async (prd: ProjectPRD) => {
+    if (!selectedProjectId) return;
+
+    try {
+      const response = await fetch(`/api/projects/${selectedProjectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prd }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save PRD');
+
+      const { project } = await response.json();
+      setProjectsList(prev => prev.map(p => p.id === selectedProjectId ? project : p));
+      setShowPRDModal(false);
+      alert('PRD saved successfully!');
+    } catch (err) {
+      console.error('Error saving PRD:', err);
+      alert('Failed to save PRD. Please try again.');
     }
   };
 
@@ -1308,6 +1333,40 @@ export default function DashboardPage() {
                 </div>
               )}
 
+              {/* PRD Section */}
+              <div className="pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-base font-bold text-gray-900">Product Requirements Document (PRD)</h3>
+                  <button
+                    onClick={() => setShowPRDModal(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
+                  >
+                    {project.prd ? 'View / Edit PRD' : 'Add PRD'}
+                  </button>
+                </div>
+                {project.prd ? (
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <div className="text-sm text-purple-900">
+                      <p className="font-medium mb-2">PRD Summary:</p>
+                      <div className="space-y-1 text-sm">
+                        {project.prd.whyBuilding && (
+                          <p><strong>Purpose:</strong> {project.prd.whyBuilding}</p>
+                        )}
+                        {project.prd.apisRequired && project.prd.apisRequired.length > 0 && (
+                          <p><strong>APIs:</strong> {project.prd.apisRequired.join(', ')}</p>
+                        )}
+                        {project.prd.confidenceLevel && (
+                          <p><strong>Confidence:</strong> {project.prd.confidenceLevel}</p>
+                        )}
+                      </div>
+                      <p className="text-xs text-purple-700 mt-2">Click &quot;View / Edit PRD&quot; to see full details</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600">No PRD created yet. Click &quot;Add PRD&quot; to document project requirements and planning.</p>
+                )}
+              </div>
+
               {/* Time tracking */}
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                 <div>
@@ -1513,6 +1572,26 @@ export default function DashboardPage() {
         onClose={() => setShowManualLearningModal(false)}
         onSave={handleSaveManualLearning}
       />
+
+      {/* PRD Builder Modal */}
+      {showPRDModal && selectedProjectId && (() => {
+        const project = projects.find(p => p.id === selectedProjectId);
+        if (!project) return null;
+        return (
+          <PRDBuilderModal
+            isOpen={showPRDModal}
+            onClose={() => setShowPRDModal(false)}
+            onSave={handleSavePRD}
+            initialData={{
+              name: project.name,
+              description: project.description,
+              whoWillUseIt: project.whoWillUseIt,
+              platform: project.platform,
+            }}
+            existingPRD={project.prd}
+          />
+        );
+      })()}
     </div>
   );
 }

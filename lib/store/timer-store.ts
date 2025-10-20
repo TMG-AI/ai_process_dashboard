@@ -35,9 +35,16 @@ export const useTimerStore = create<TimerState>((set) => ({
     currentTimeLogId: null,
   }),
 
-  incrementSeconds: () => set((state) => ({
-    elapsedSeconds: state.elapsedSeconds + 1,
-  })),
+  incrementSeconds: () => set((state) => {
+    // Calculate from actual time difference instead of incrementing
+    // This prevents drift from setInterval inaccuracy
+    if (state.startTime) {
+      const now = new Date();
+      const actualElapsed = Math.floor((now.getTime() - state.startTime.getTime()) / 1000);
+      return { elapsedSeconds: actualElapsed };
+    }
+    return { elapsedSeconds: state.elapsedSeconds + 1 };
+  }),
 
   resetTimer: () => set({
     elapsedSeconds: 0,
