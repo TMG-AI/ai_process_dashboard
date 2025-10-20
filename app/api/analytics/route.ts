@@ -83,6 +83,15 @@ export async function GET(request: Request) {
 
     const totalHours = totalBuildingHours + totalDebuggingHours;
 
+    console.log('📊 ANALYTICS API: Data Summary', {
+      period,
+      totalProjects: projects.length,
+      totalTimeLogs: timeLogs.length,
+      totalBuildingHours: totalBuildingHours.toFixed(2),
+      totalDebuggingHours: totalDebuggingHours.toFixed(2),
+      totalHours: totalHours.toFixed(2),
+    });
+
     // Previous period metrics for comparison
     const prevBuildingHours = prevTimeLogs
       .filter(t => t.timerType === 'building')
