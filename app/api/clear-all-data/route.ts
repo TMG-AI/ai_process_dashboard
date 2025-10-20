@@ -4,7 +4,7 @@ import { redis } from '@/lib/redis/client';
 // Temporary: For local testing
 const TEMP_USER_ID = 'user_local_dev';
 
-export async function POST() {
+async function clearData() {
   try {
     console.log('🗑️ CLEARING ALL DATA for user:', TEMP_USER_ID);
 
@@ -37,4 +37,13 @@ export async function POST() {
       { status: 500 }
     );
   }
+}
+
+// Support both GET and POST
+export async function GET() {
+  return clearData();
+}
+
+export async function POST() {
+  return clearData();
 }
