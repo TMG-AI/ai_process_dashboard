@@ -45,6 +45,9 @@ export default function DashboardPage() {
   const [has120ModalShown, setHas120ModalShown] = useState(false);
   const [isExtendedDebugging, setIsExtendedDebugging] = useState(false);
 
+  // Project status filter
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('active');
+
   // Zustand timer store
   const {
     activeProjectId,
@@ -345,15 +348,28 @@ export default function DashboardPage() {
 
   // Calculate metrics (memoized to prevent infinite render loop)
   // FIX: Use projectsList instead of projects to ensure re-calculation on data changes
-  const { activeProjects, buildingHours, debuggingHours } = useMemo(() => {
+  const { activeProjects, filteredProjects, buildingHours, debuggingHours } = useMemo(() => {
     const active = projectsList.filter(p => p.status !== 'complete' && p.status !== 'paused');
     const building = projectsList.reduce((sum, p) => sum + (p.buildingHours || 0), 0);
     const debugging = projectsList.reduce((sum, p) => sum + (p.debuggingHours || 0), 0);
+
+    // Apply status filter
+    let filtered: Project[];
+    if (statusFilter === 'active') {
+      filtered = projectsList.filter(p => p.status !== 'complete' && p.status !== 'paused');
+    } else if (statusFilter === 'completed') {
+      filtered = projectsList.filter(p => p.status === 'complete');
+    } else {
+      // 'all' - show everything
+      filtered = projectsList;
+    }
 
     console.log('📊 BROWSER: Overview totals calculated:', {
       totalProjects: projectsList.length,
       buildingHours: building,
       debuggingHours: debugging,
+      statusFilter,
+      filteredCount: filtered.length,
       projectBreakdown: projectsList.map(p => ({
         name: p.name,
         buildingHours: p.buildingHours || 0,
@@ -361,8 +377,8 @@ export default function DashboardPage() {
       }))
     });
 
-    return { activeProjects: active, buildingHours: building, debuggingHours: debugging };
-  }, [projectsList]);
+    return { activeProjects: active, filteredProjects: filtered, buildingHours: building, debuggingHours: debugging };
+  }, [projectsList, statusFilter]);
   const completedThisMonth = projects.filter(p => {
     if (!p.completedAt) return false;
     const completedDate = new Date(p.completedAt);
@@ -513,7 +529,11 @@ export default function DashboardPage() {
 
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Active Projects</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            {statusFilter === 'active' ? 'Active Projects' :
+             statusFilter === 'completed' ? 'Completed Projects' :
+             'All Projects'}
+          </h2>
           <button
             onClick={() => {
               if (activeProjects.length >= 3) {
@@ -529,21 +549,65 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {projects.length === 0 ? (
+        {/* Status Filter */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              statusFilter === 'all'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All ({projectsList.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('active')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              statusFilter === 'active'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Active ({activeProjects.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('completed')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              statusFilter === 'completed'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Completed ({projectsList.filter(p => p.status === 'complete').length})
+          </button>
+        </div>
+
+        {filteredProjects.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-            <h3 className="text-gray-900 font-semibold mb-2">No projects yet</h3>
-            <p className="text-gray-600 mb-4">Get started by creating your first project</p>
-            <button
-              onClick={() => router.push('/projects/new')}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              Create First Project
-            </button>
+            <h3 className="text-gray-900 font-semibold mb-2">
+              {statusFilter === 'completed' ? 'No completed projects yet' :
+               statusFilter === 'active' ? 'No active projects' :
+               'No projects yet'}
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {statusFilter === 'completed' ? 'Completed projects will appear here' :
+               statusFilter === 'active' ? 'Get started by creating your first project' :
+               'Get started by creating your first project'}
+            </p>
+            {statusFilter !== 'completed' && (
+              <button
+                onClick={() => router.push('/projects/new')}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Create First Project
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
-            {projects.map(project => (
+            {filteredProjects.map(project => (
             <div
               key={project.id}
               className="bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
