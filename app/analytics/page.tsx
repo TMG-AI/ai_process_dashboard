@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { TrendingUp, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { signOut } from 'next-auth/react';
+import { TrendingUp, Clock, CheckCircle2, AlertCircle, LogOut } from 'lucide-react';
 
 interface Analytics {
   totalHours: number;
@@ -71,6 +72,13 @@ export default function AnalyticsPage() {
                 </button>
               </nav>
             </div>
+            <button
+              onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
           </div>
         </div>
       </header>

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Mail, Clock } from 'lucide-react';
+import { signOut } from 'next-auth/react';
+import { Plus, Mail, Clock, LogOut } from 'lucide-react';
 import { ColleagueRequest } from '@/lib/types';
 
 export default function RequestsPage() {
@@ -87,13 +88,22 @@ export default function RequestsPage() {
                 </button>
               </nav>
             </div>
-            <button
-              onClick={() => {/* TODO: Implement new request modal */}}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              New Request
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {/* TODO: Implement new request modal */}}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                New Request
+              </button>
+              <button
+                onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       </header>
