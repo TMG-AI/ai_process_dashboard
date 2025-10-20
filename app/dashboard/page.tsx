@@ -866,7 +866,6 @@ export default function DashboardPage() {
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-gray-600">{project.nextAction || 'No next action set'}</div>
                     <div className="flex gap-4 mt-2 text-xs text-gray-500">
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
