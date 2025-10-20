@@ -255,21 +255,34 @@ export default function AnalyticsPage() {
 
           {/* Building vs Debugging Bar Chart */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Building vs Debugging Time</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Building vs Debugging Ratio</h3>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart
                 data={[
                   {
-                    name: 'Time Distribution',
+                    category: 'Ratio',
                     Building: analytics?.buildingRatio || 0,
                     Debugging: analytics?.debuggingRatio || 0,
                   },
                 ]}
                 layout="vertical"
+                margin={{ left: 20, right: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 12 }} stroke="#9ca3af" />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} stroke="#9ca3af" />
+                <XAxis
+                  type="number"
+                  domain={[0, 100]}
+                  tick={{ fontSize: 12 }}
+                  stroke="#9ca3af"
+                  label={{ value: '% of Total Time', position: 'insideBottom', offset: -5, style: { fontSize: 12 } }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="category"
+                  tick={{ fontSize: 12 }}
+                  stroke="#9ca3af"
+                  width={60}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#fff',
