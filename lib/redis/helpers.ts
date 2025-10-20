@@ -50,7 +50,6 @@ export async function createProject(userId: string, projectData: Omit<Project, '
     ...projectData,
     buildingHours: 0,
     debuggingHours: 0,
-    progress: 0,
     priority: projectData.priority || 'medium',
     status: projectData.status || 'planning',
     createdAt: new Date().toISOString(),
@@ -72,7 +71,6 @@ export async function getProject(projectId: string): Promise<Project | null> {
     ...data,
     buildingHours: data.buildingHours ?? 0,
     debuggingHours: data.debuggingHours ?? 0,
-    progress: data.progress ?? 0,
   };
 }
 
@@ -287,7 +285,6 @@ export async function completeProject(projectId: string): Promise<Project | null
   return await updateProject(projectId, {
     status: 'complete',
     completedAt: new Date().toISOString(),
-    progress: 100,
   });
 }
 

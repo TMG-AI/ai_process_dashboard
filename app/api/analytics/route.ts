@@ -138,7 +138,6 @@ export async function GET(request: Request) {
       debugRatio: ((p.buildingHours || 0) + (p.debuggingHours || 0)) > 0
         ? Math.round(((p.debuggingHours || 0) / ((p.buildingHours || 0) + (p.debuggingHours || 0))) * 100)
         : 0,
-      progress: p.progress || 0,
       status: p.status,
     })).sort((a, b) => b.totalHours - a.totalHours);
 

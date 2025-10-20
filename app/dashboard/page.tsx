@@ -227,7 +227,6 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'complete',
-          progress: 100,
           completedAt: new Date().toISOString()
         }),
       });
@@ -897,19 +896,6 @@ export default function DashboardPage() {
                   </button>
                 </div>
 
-                <div className="mb-3">
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
-                    <span>Progress</span>
-                    <span className="font-medium text-gray-700">{project.progress}%</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gray-900 transition-all duration-500"
-                      style={{ width: `${project.progress}%` }}
-                    />
-                  </div>
-                </div>
-
                 {expandedProject === project.id && (
                   <div className="mb-3 pt-3 border-t border-gray-100">
                     <div className="flex gap-2">
@@ -996,7 +982,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Mark Project as Complete?</h3>
             <p className="text-gray-600 mb-4">
-              Are you sure you want to mark &quot;{project?.name}&quot; as complete? This will set the progress to 100% and archive the project.
+              Are you sure you want to mark &quot;{project?.name}&quot; as complete? This will archive the project.
             </p>
             <div className="flex gap-3">
               <button
@@ -1024,7 +1010,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Project?</h3>
             <p className="text-gray-600 mb-4">
-              Are you sure you want to delete &quot;{project?.name}&quot;? This action cannot be undone. All time logs and progress will be permanently removed.
+              Are you sure you want to delete &quot;{project?.name}&quot;? This action cannot be undone. All time logs will be permanently removed.
             </p>
             <div className="flex gap-3">
               <button

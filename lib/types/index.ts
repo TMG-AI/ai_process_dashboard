@@ -44,7 +44,6 @@ export interface ProjectBase {
   priority: 'low' | 'medium' | 'high';
   buildingHours: number;
   debuggingHours: number;
-  progress: number;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;

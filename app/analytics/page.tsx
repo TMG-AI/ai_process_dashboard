@@ -20,7 +20,6 @@ interface Analytics {
     debuggingHours: number;
     totalHours: number;
     debugRatio: number;
-    progress: number;
     status: string;
   }>;
   chartData: Array<{
