@@ -59,12 +59,6 @@ export default function DebugLogsPage() {
                   Overview
                 </button>
                 <button
-                  onClick={() => router.push('/requests')}
-                  className="text-sm font-medium text-gray-500 hover:text-gray-900"
-                >
-                  Requests
-                </button>
-                <button
                   onClick={() => router.push('/debug-logs')}
                   className="text-sm font-medium text-gray-900"
                 >

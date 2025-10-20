@@ -283,6 +283,25 @@ export default function DashboardPage() {
     }
   };
 
+  const handleUnpauseProject = async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'building' }),
+      });
+
+      if (!response.ok) throw new Error('Failed to unpause project');
+
+      const { project } = await response.json();
+      setProjectsList(prev => prev.map(p => p.id === projectId ? project : p));
+      setExpandedProject(null);
+    } catch (err) {
+      console.error('Error unpausing project:', err);
+      alert('Failed to unpause project. Please try again.');
+    }
+  };
+
   const handleSaveProjectEdits = async () => {
     if (!selectedProjectId) return;
 
@@ -895,16 +914,26 @@ export default function DashboardPage() {
                 {expandedProject === project.id && (
                   <div className="mb-3 pt-3 border-t border-gray-100">
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedProjectId(project.id);
-                          setShowModal('complete-confirm');
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 text-sm font-medium"
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        Mark Complete
-                      </button>
+                      {project.status === 'paused' ? (
+                        <button
+                          onClick={() => handleUnpauseProject(project.id)}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 text-sm font-medium"
+                        >
+                          <Play className="w-4 h-4" />
+                          Resume Project
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedProjectId(project.id);
+                            setShowModal('complete-confirm');
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 text-sm font-medium"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          Mark Complete
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setSelectedProjectId(project.id);
@@ -1146,7 +1175,7 @@ export default function DashboardPage() {
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6 my-8">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-semibold text-gray-900">{project.name}</h2>
@@ -1460,12 +1489,6 @@ export default function DashboardPage() {
                   className="text-sm font-medium text-gray-900"
                 >
                   Overview
-                </button>
-                <button
-                  onClick={() => router.push('/requests')}
-                  className="text-sm font-medium text-gray-500 hover:text-gray-900"
-                >
-                  Requests
                 </button>
                 <button
                   onClick={() => router.push('/debug-logs')}
