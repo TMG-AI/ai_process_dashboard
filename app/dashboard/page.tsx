@@ -1149,16 +1149,28 @@ export default function DashboardPage() {
             <div className="flex items-center gap-8">
               <h1 className="text-xl font-semibold text-gray-900">Project Autopilot</h1>
               <nav className="flex gap-6">
-                <button className="text-sm font-medium text-gray-900">
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="text-sm font-medium text-gray-900"
+                >
                   Overview
                 </button>
-                <button className="text-sm font-medium text-gray-500 hover:text-gray-900">
+                <button
+                  onClick={() => router.push('/requests')}
+                  className="text-sm font-medium text-gray-500 hover:text-gray-900"
+                >
                   Requests
                 </button>
-                <button className="text-sm font-medium text-gray-500 hover:text-gray-900">
+                <button
+                  onClick={() => router.push('/debug-logs')}
+                  className="text-sm font-medium text-gray-500 hover:text-gray-900"
+                >
                   Debug Logs
                 </button>
-                <button className="text-sm font-medium text-gray-500 hover:text-gray-900">
+                <button
+                  onClick={() => router.push('/analytics')}
+                  className="text-sm font-medium text-gray-500 hover:text-gray-900"
+                >
                   Analytics
                 </button>
               </nav>
