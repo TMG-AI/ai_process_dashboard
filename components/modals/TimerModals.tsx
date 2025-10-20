@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
 
 interface DebugSixtyMinModalProps {
   isOpen: boolean;
@@ -18,6 +18,8 @@ export function DebugSixtyMinModal({
 }: DebugSixtyMinModalProps) {
   const [attempts, setAttempts] = useState('');
   const [hypothesis, setHypothesis] = useState('');
+  const [showHelper, setShowHelper] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
@@ -25,6 +27,32 @@ export function DebugSixtyMinModal({
     onContinue({ attempts, hypothesis });
     setAttempts('');
     setHypothesis('');
+  };
+
+  const claudePrompt = `Please analyze our debugging session over the last 60 minutes. Create a summary with:
+
+1. **What we tried** - List each debugging approach as a separate bullet point (e.g., "Checked console logs", "Added breakpoints", "Tested API endpoint")
+
+2. **Current hypothesis** - One clear sentence about what you think is causing the issue
+
+Format your response like this:
+
+**Attempts:**
+- [First thing we tried]
+- [Second thing we tried]
+- [Third thing we tried]
+
+**Hypothesis:**
+[Your one-sentence hypothesis about the root cause]`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(claudePrompt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   return (
@@ -36,6 +64,61 @@ export function DebugSixtyMinModal({
         </div>
 
         <div className="p-6 space-y-4">
+          {/* Claude Code Helper */}
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <button
+              onClick={() => setShowHelper(!showHelper)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <span className="text-sm font-medium text-purple-900">
+                💡 Debugging in Claude Code? Get auto-summary
+              </span>
+              <span className="text-purple-600 text-xs">
+                {showHelper ? '▼' : '▶'}
+              </span>
+            </button>
+
+            {showHelper && (
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-purple-800">
+                  <strong>How it works:</strong> Copy this prompt, paste it into Claude Code, and Claude will generate a summary of what you&apos;ve been debugging.
+                </p>
+
+                <div className="bg-white border border-purple-300 rounded p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-gray-700">Prompt for Claude Code:</span>
+                    <button
+                      onClick={handleCopy}
+                      className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="w-3 h-3" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          Copy
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono bg-gray-50 p-2 rounded border border-gray-200 max-h-32 overflow-y-auto">
+                    {claudePrompt}
+                  </pre>
+                </div>
+
+                <ol className="text-xs text-purple-800 space-y-1 pl-4">
+                  <li>1. Click &quot;Copy&quot; above</li>
+                  <li>2. Paste into Claude Code</li>
+                  <li>3. Claude will generate a summary</li>
+                  <li>4. Copy Claude&apos;s response and paste below</li>
+                </ol>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">
               What have you tried?
