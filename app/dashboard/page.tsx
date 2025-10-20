@@ -39,6 +39,12 @@ export default function DashboardPage() {
   const [showBuilding2HrModal, setShowBuilding2HrModal] = useState(false);
   const [showLimiterModal, setShowLimiterModal] = useState(false);
 
+  // Flags to prevent modals from showing multiple times
+  const [has60ModalShown, setHas60ModalShown] = useState(false);
+  const [has90ModalShown, setHas90ModalShown] = useState(false);
+  const [has120ModalShown, setHas120ModalShown] = useState(false);
+  const [isExtendedDebugging, setIsExtendedDebugging] = useState(false);
+
   // Zustand timer store
   const {
     activeProjectId,
@@ -91,6 +97,12 @@ export default function DashboardPage() {
 
       const data = await response.json();
       setActiveTimer(projectId, type, data.timeLog.id);
+
+      // Reset all modal flags for new timer session
+      setHas60ModalShown(false);
+      setHas90ModalShown(false);
+      setHas120ModalShown(false);
+      setIsExtendedDebugging(false);
     } catch (error) {
       console.error('Error starting timer:', error);
       alert('Failed to start timer. Please try again.');
@@ -253,7 +265,7 @@ export default function DashboardPage() {
   // Handle debug 60min modal
   const handleDebug60Continue = async (data: { attempts: string; hypothesis: string }) => {
     try {
-      await fetch('/api/debuglog/create', {
+      const response = await fetch('/api/debuglog/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -264,10 +276,17 @@ export default function DashboardPage() {
         }),
       });
 
+      if (!response.ok) {
+        throw new Error('Failed to save debug log');
+      }
+
       // Continue for 30 more minutes
       setShowDebug60Modal(false);
     } catch (error) {
       console.error('Error saving debug log:', error);
+      alert('Failed to save your debug notes. You can continue working, but your notes were not saved.');
+      // Still close modal to not block user
+      setShowDebug60Modal(false);
     }
   };
 
@@ -279,6 +298,17 @@ export default function DashboardPage() {
   // Handle debug 90min modal
   const handleDebug90End = () => {
     handleStopTimer();
+    setShowDebug90Modal(false);
+  };
+
+  const handleDebug90TakeBreak = () => {
+    handleStopTimer();
+    setShowDebug90Modal(false);
+  };
+
+  const handleDebug90ContinueAnyway = () => {
+    // Allow user to continue but show warning indicator
+    setIsExtendedDebugging(true);
     setShowDebug90Modal(false);
   };
 
@@ -362,27 +392,41 @@ export default function DashboardPage() {
       };
     });
 
-  // Timer logic with nudges
+  // Timer interval - runs independently without re-creating
   useEffect(() => {
     if (!activeProjectId) return;
 
     const interval = setInterval(() => {
       incrementSeconds();
-
-      // Check for nudges
-      if (timerType === 'debugging') {
-        if (elapsedSeconds === 3600) setShowDebug60Modal(true); // 60 minutes
-        if (elapsedSeconds === 5400) { // 90 minutes
-          setShowDebug90Modal(true);
-          handleStopTimer();
-        }
-      } else if (timerType === 'building') {
-        if (elapsedSeconds === 7200) setShowBuilding2HrModal(true); // 2 hours
-      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeProjectId, elapsedSeconds, timerType, incrementSeconds, handleStopTimer]);
+  }, [activeProjectId, incrementSeconds]);
+
+  // Separate effect for checking thresholds - prevents crash from interval recreation
+  useEffect(() => {
+    if (!activeProjectId) return;
+
+    // Check for nudges using >= to prevent missing exact seconds
+    if (timerType === 'debugging') {
+      // 60 minutes - show modal once
+      if (elapsedSeconds >= 3600 && !has60ModalShown) {
+        setShowDebug60Modal(true);
+        setHas60ModalShown(true);
+      }
+      // 90 minutes - show modal once (only if not already in extended mode)
+      if (elapsedSeconds >= 5400 && !has90ModalShown && !isExtendedDebugging) {
+        setShowDebug90Modal(true);
+        setHas90ModalShown(true);
+      }
+    } else if (timerType === 'building') {
+      // 2 hours - show modal once
+      if (elapsedSeconds >= 7200 && !has120ModalShown) {
+        setShowBuilding2HrModal(true);
+        setHas120ModalShown(true);
+      }
+    }
+  }, [activeProjectId, elapsedSeconds, timerType, has60ModalShown, has90ModalShown, has120ModalShown, isExtendedDebugging]);
 
   // Format seconds to h:mm:ss
   const formatTime = (seconds: number) => {
@@ -1122,13 +1166,15 @@ export default function DashboardPage() {
 
             {activeProjectId && (
               <div className={`flex items-center gap-3 px-4 py-2 rounded-lg ${
-                timerType === 'building' ? 'bg-gray-100' : 'bg-red-50'
+                timerType === 'building' ? 'bg-gray-100' :
+                isExtendedDebugging ? 'bg-red-100 border-2 border-red-500 animate-pulse' :
+                'bg-red-50'
               }`}>
-                <Clock className={`w-4 h-4 ${timerType === 'building' ? 'text-gray-600' : 'text-red-600'}`} />
-                <span className={`text-sm font-medium ${timerType === 'building' ? 'text-gray-900' : 'text-red-900'}`}>
-                  {timerType === 'building' ? 'Building' : 'Debugging'}: {projects.find(p => p.id === activeProjectId)?.name}
+                <Clock className={`w-4 h-4 ${timerType === 'building' ? 'text-gray-600' : isExtendedDebugging ? 'text-red-700' : 'text-red-600'}`} />
+                <span className={`text-sm font-medium ${timerType === 'building' ? 'text-gray-900' : isExtendedDebugging ? 'text-red-900' : 'text-red-900'}`}>
+                  {timerType === 'building' ? 'Building' : isExtendedDebugging ? '⚠️ Extended Debugging' : 'Debugging'}: {projects.find(p => p.id === activeProjectId)?.name}
                 </span>
-                <span className={`font-mono text-sm ${timerType === 'building' ? 'text-gray-700' : 'text-red-700'}`}>
+                <span className={`font-mono text-sm ${timerType === 'building' ? 'text-gray-700' : isExtendedDebugging ? 'text-red-800 font-bold' : 'text-red-700'}`}>
                   {formatTime(elapsedSeconds)}
                 </span>
               </div>
@@ -1153,6 +1199,8 @@ export default function DashboardPage() {
       <DebugNinetyMinModal
         isOpen={showDebug90Modal}
         onEnd={handleDebug90End}
+        onTakeBreak={handleDebug90TakeBreak}
+        onContinueAnyway={handleDebug90ContinueAnyway}
       />
 
       <BuildingTwoHourModal

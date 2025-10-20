@@ -93,36 +93,54 @@ export function DebugSixtyMinModal({
 interface DebugNinetyMinModalProps {
   isOpen: boolean;
   onEnd: () => void;
+  onTakeBreak: () => void;
+  onContinueAnyway: () => void;
 }
 
-export function DebugNinetyMinModal({ isOpen, onEnd }: DebugNinetyMinModalProps) {
+export function DebugNinetyMinModal({
+  isOpen,
+  onEnd,
+  onTakeBreak,
+  onContinueAnyway
+}: DebugNinetyMinModalProps) {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-md w-full">
         <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Debug Session Complete</h3>
-          <p className="text-sm text-gray-600 mt-1">90-minute limit reached</p>
+          <h3 className="text-lg font-semibold text-gray-900">Debug Session: 90 Minutes</h3>
+          <p className="text-sm text-gray-600 mt-1">Recommended limit reached</p>
         </div>
 
         <div className="p-6">
           <p className="text-gray-600 mb-4">
-            Your debugging session has reached the 90-minute limit. Progress has been automatically logged.
+            You&apos;ve been debugging for 90 minutes. Research shows taking a break or getting fresh perspective often leads to faster resolution.
           </p>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-900">
-              <strong>Next Steps:</strong> Consider taking a break, consulting with a colleague,
-              or working on a different project. Fresh perspective often leads to faster resolution.
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p className="text-sm text-amber-900">
+              <strong>⚠️ Extended Debugging Alert:</strong> If you continue, the timer will show a warning indicator. Consider taking a break and coming back with fresh eyes.
             </p>
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-200">
+        <div className="p-6 border-t border-gray-200 space-y-2">
+          <button
+            onClick={onTakeBreak}
+            className="w-full px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-medium"
+          >
+            Take a Break
+          </button>
+          <button
+            onClick={onContinueAnyway}
+            className="w-full px-4 py-2.5 border border-amber-500 text-amber-700 rounded-lg hover:bg-amber-50 font-medium"
+          >
+            Continue Anyway (Timer Will Show Warning)
+          </button>
           <button
             onClick={onEnd}
-            className="w-full px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-medium"
+            className="w-full px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
           >
             End Session
           </button>
