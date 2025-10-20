@@ -11,6 +11,7 @@ import {
   BuildingTwoHourModal,
   ProjectLimiterModal
 } from '@/components/modals/TimerModals';
+import { StopLearningModal, ManualLearningModal } from '@/components/modals/LearningModals';
 
 // Helper function to format platform names
 const formatPlatform = (platform?: string) => {
@@ -47,6 +48,14 @@ export default function DashboardPage() {
 
   // Project status filter
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('active');
+
+  // Learning timer state
+  const [isLearningTimerActive, setIsLearningTimerActive] = useState(false);
+  const [learningStartTime, setLearningStartTime] = useState<string | null>(null);
+  const [learningElapsedSeconds, setLearningElapsedSeconds] = useState(0);
+  const [showStopLearningModal, setShowStopLearningModal] = useState(false);
+  const [showManualLearningModal, setShowManualLearningModal] = useState(false);
+  const [totalLearningHours, setTotalLearningHours] = useState(0);
 
   // Zustand timer store
   const {
@@ -86,6 +95,33 @@ export default function DashboardPage() {
 
     fetchProjects();
   }, []);
+
+  // Fetch learning time totals
+  useEffect(() => {
+    async function fetchLearningData() {
+      try {
+        const response = await fetch('/api/learning');
+        if (response.ok) {
+          const data = await response.json();
+          setTotalLearningHours(data.totalHours || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching learning data:', error);
+      }
+    }
+    fetchLearningData();
+  }, []);
+
+  // Learning timer interval
+  useEffect(() => {
+    if (!isLearningTimerActive) return;
+
+    const interval = setInterval(() => {
+      setLearningElapsedSeconds(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isLearningTimerActive]);
 
   // Start timer
   const handleStartTimer = async (projectId: string, type: 'building' | 'debugging') => {
@@ -346,6 +382,99 @@ export default function DashboardPage() {
     }
   };
 
+  // Learning timer handlers
+  const handleStartLearning = async () => {
+    try {
+      const response = await fetch('/api/learning/start', {
+        method: 'POST',
+      });
+
+      if (!response.ok) throw new Error('Failed to start learning timer');
+
+      const data = await response.json();
+      setLearningStartTime(data.startedAt);
+      setIsLearningTimerActive(true);
+      setLearningElapsedSeconds(0);
+    } catch (error) {
+      console.error('Error starting learning timer:', error);
+      alert('Failed to start learning timer. Please try again.');
+    }
+  };
+
+  const handleStopLearning = () => {
+    setShowStopLearningModal(true);
+  };
+
+  const handleSaveLearningLog = async (data: {
+    sources: string[];
+    otherSource?: string;
+    topic?: string;
+    description?: string;
+  }) => {
+    try {
+      const response = await fetch('/api/learning/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startedAt: learningStartTime,
+          sources: data.sources,
+          otherSource: data.otherSource,
+          topic: data.topic,
+          description: data.description,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save learning log');
+
+      // Reset learning timer
+      setIsLearningTimerActive(false);
+      setLearningStartTime(null);
+      setLearningElapsedSeconds(0);
+      setShowStopLearningModal(false);
+
+      // Refresh learning data
+      const learningResponse = await fetch('/api/learning');
+      if (learningResponse.ok) {
+        const learningData = await learningResponse.json();
+        setTotalLearningHours(learningData.totalHours || 0);
+      }
+    } catch (error) {
+      console.error('Error saving learning log:', error);
+      alert('Failed to save learning log. Please try again.');
+    }
+  };
+
+  const handleSaveManualLearning = async (data: {
+    sources: string[];
+    otherSource?: string;
+    topic?: string;
+    description?: string;
+    durationMinutes: number;
+    date?: string;
+  }) => {
+    try {
+      const response = await fetch('/api/learning/manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to save manual learning entry');
+
+      setShowManualLearningModal(false);
+
+      // Refresh learning data
+      const learningResponse = await fetch('/api/learning');
+      if (learningResponse.ok) {
+        const learningData = await learningResponse.json();
+        setTotalLearningHours(learningData.totalHours || 0);
+      }
+    } catch (error) {
+      console.error('Error saving manual learning entry:', error);
+      alert('Failed to save manual learning entry. Please try again.');
+    }
+  };
+
   // Calculate metrics (memoized to prevent infinite render loop)
   // FIX: Use projectsList instead of projects to ensure re-calculation on data changes
   const { activeProjects, filteredProjects, buildingHours, debuggingHours } = useMemo(() => {
@@ -485,7 +614,7 @@ export default function DashboardPage() {
 
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-5 gap-4">
         <div className="bg-white border border-gray-200 rounded-lg p-5">
           <div className="text-sm text-gray-600 mb-1">Active Projects</div>
           <div className="text-3xl font-semibold text-gray-900">{activeProjects.length}</div>
@@ -508,6 +637,13 @@ export default function DashboardPage() {
           <div className="text-xs text-amber-600 mt-1">this week</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-5">
+          <div className="text-sm text-gray-600 mb-1">Learning Time</div>
+          <div className="text-2xl font-semibold text-gray-900 font-mono">
+            {formatHours(totalLearningHours + (isLearningTimerActive ? learningElapsedSeconds / 3600 : 0))}
+          </div>
+          <div className="text-xs text-purple-600 mt-1">all time</div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-5">
           <div className="text-sm text-gray-600 mb-1">Completed</div>
           <div className="text-3xl font-semibold text-gray-900">{completedThisMonth}</div>
           <div className="text-xs text-gray-500 mt-1">this month</div>
@@ -526,6 +662,52 @@ export default function DashboardPage() {
           </button>
         </div>
       ))}
+
+      {/* Learning Timer Controls */}
+      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-sm font-medium text-purple-900">AI Learning Time</div>
+            {isLearningTimerActive && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-purple-100 rounded-lg">
+                <Clock className="w-4 h-4 text-purple-700" />
+                <span className="text-sm font-mono font-medium text-purple-900">
+                  {formatTime(learningElapsedSeconds)}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {isLearningTimerActive ? (
+              <button
+                onClick={handleStopLearning}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
+              >
+                <Pause className="w-4 h-4" />
+                Stop Learning
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleStartLearning}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
+                  disabled={activeProjectId !== null}
+                >
+                  <Play className="w-4 h-4" />
+                  Start Learning
+                </button>
+                <button
+                  onClick={() => setShowManualLearningModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-100 text-sm font-medium"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Manual Time
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div>
         <div className="flex items-center justify-between mb-4">
@@ -1240,21 +1422,34 @@ export default function DashboardPage() {
               </nav>
             </div>
 
-            {activeProjectId && (
-              <div className={`flex items-center gap-3 px-4 py-2 rounded-lg ${
-                timerType === 'building' ? 'bg-gray-100' :
-                isExtendedDebugging ? 'bg-red-100 border-2 border-red-500 animate-pulse' :
-                'bg-red-50'
-              }`}>
-                <Clock className={`w-4 h-4 ${timerType === 'building' ? 'text-gray-600' : isExtendedDebugging ? 'text-red-700' : 'text-red-600'}`} />
-                <span className={`text-sm font-medium ${timerType === 'building' ? 'text-gray-900' : isExtendedDebugging ? 'text-red-900' : 'text-red-900'}`}>
-                  {timerType === 'building' ? 'Building' : isExtendedDebugging ? '⚠️ Extended Debugging' : 'Debugging'}: {projects.find(p => p.id === activeProjectId)?.name}
-                </span>
-                <span className={`font-mono text-sm ${timerType === 'building' ? 'text-gray-700' : isExtendedDebugging ? 'text-red-800 font-bold' : 'text-red-700'}`}>
-                  {formatTime(elapsedSeconds)}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              {activeProjectId && (
+                <div className={`flex items-center gap-3 px-4 py-2 rounded-lg ${
+                  timerType === 'building' ? 'bg-gray-100' :
+                  isExtendedDebugging ? 'bg-red-100 border-2 border-red-500 animate-pulse' :
+                  'bg-red-50'
+                }`}>
+                  <Clock className={`w-4 h-4 ${timerType === 'building' ? 'text-gray-600' : isExtendedDebugging ? 'text-red-700' : 'text-red-600'}`} />
+                  <span className={`text-sm font-medium ${timerType === 'building' ? 'text-gray-900' : isExtendedDebugging ? 'text-red-900' : 'text-red-900'}`}>
+                    {timerType === 'building' ? 'Building' : isExtendedDebugging ? '⚠️ Extended Debugging' : 'Debugging'}: {projects.find(p => p.id === activeProjectId)?.name}
+                  </span>
+                  <span className={`font-mono text-sm ${timerType === 'building' ? 'text-gray-700' : isExtendedDebugging ? 'text-red-800 font-bold' : 'text-red-700'}`}>
+                    {formatTime(elapsedSeconds)}
+                  </span>
+                </div>
+              )}
+              {isLearningTimerActive && (
+                <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-purple-100">
+                  <Clock className="w-4 h-4 text-purple-700" />
+                  <span className="text-sm font-medium text-purple-900">
+                    Learning
+                  </span>
+                  <span className="font-mono text-sm text-purple-800">
+                    {formatTime(learningElapsedSeconds)}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -1297,6 +1492,18 @@ export default function DashboardPage() {
           debuggingHours: p.debuggingHours,
         }))}
         onPauseProject={handlePauseProjectForNew}
+      />
+
+      <StopLearningModal
+        isOpen={showStopLearningModal}
+        onClose={() => setShowStopLearningModal(false)}
+        onSave={handleSaveLearningLog}
+      />
+
+      <ManualLearningModal
+        isOpen={showManualLearningModal}
+        onClose={() => setShowManualLearningModal(false)}
+        onSave={handleSaveManualLearning}
       />
     </div>
   );
