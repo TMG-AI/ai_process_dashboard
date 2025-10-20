@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { TrendingUp, TrendingDown, Clock, CheckCircle2, AlertCircle, LogOut } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Analytics {
   totalHours: number;
@@ -201,97 +201,48 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-2 gap-6 mb-8">
-          {/* Time Series Chart */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Daily Hours Breakdown</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <AreaChart data={analytics?.chartData || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis
-                  dataKey="dateLabel"
-                  tick={{ fontSize: 12 }}
-                  stroke="#9ca3af"
-                />
-                <YAxis
-                  tick={{ fontSize: 12 }}
-                  stroke="#9ca3af"
-                  label={{ value: 'Hours', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="building"
-                  stackId="1"
-                  stroke="#6b7280"
-                  fill="#6b7280"
-                  name="Building"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="debugging"
-                  stackId="1"
-                  stroke="#ef4444"
-                  fill="#ef4444"
-                  name="Debugging"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Building vs Debugging Bar Chart */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Building vs Debugging Ratio</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart
-                data={[
-                  {
-                    category: 'Ratio',
-                    Building: analytics?.buildingRatio || 0,
-                    Debugging: analytics?.debuggingRatio || 0,
-                  },
-                ]}
-                layout="vertical"
-                margin={{ left: 20, right: 20 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis
-                  type="number"
-                  domain={[0, 100]}
-                  tick={{ fontSize: 12 }}
-                  stroke="#9ca3af"
-                  label={{ value: '% of Total Time', position: 'insideBottom', offset: -5, style: { fontSize: 12 } }}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="category"
-                  tick={{ fontSize: 12 }}
-                  stroke="#9ca3af"
-                  width={60}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                  }}
-                  formatter={(value) => `${value}%`}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="Building" fill="#6b7280" />
-                <Bar dataKey="Debugging" fill="#ef4444" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        {/* Daily Hours Chart */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+          <h3 className="font-semibold text-gray-900 mb-4">Daily Hours Breakdown</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={analytics?.chartData || []}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis
+                dataKey="dateLabel"
+                tick={{ fontSize: 12 }}
+                stroke="#9ca3af"
+              />
+              <YAxis
+                tick={{ fontSize: 12 }}
+                stroke="#9ca3af"
+                label={{ value: 'Hours', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="building"
+                stackId="1"
+                stroke="#6b7280"
+                fill="#6b7280"
+                name="Building"
+              />
+              <Area
+                type="monotone"
+                dataKey="debugging"
+                stackId="1"
+                stroke="#ef4444"
+                fill="#ef4444"
+                name="Debugging"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
 
         {/* Project Performance */}
