@@ -1067,7 +1067,7 @@ export default function DashboardPage() {
                   className="w-full text-left px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm"
                 >
                   <div className="font-medium text-gray-900">{project.name}</div>
-                  <div className="text-xs text-gray-500">Progress: {project.progress}%</div>
+                  <div className="text-xs text-gray-500 capitalize">{project.status}</div>
                 </button>
               ))}
             </div>
@@ -1405,17 +1405,6 @@ export default function DashboardPage() {
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-1">Debugging Time</h3>
                   <p className="text-2xl font-semibold text-gray-900 font-mono">{formatHours(project.debuggingHours || 0)}</p>
-                </div>
-              </div>
-
-              {/* Progress */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Progress: {project.progress}%</h3>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gray-900 transition-all duration-500"
-                    style={{ width: `${project.progress}%` }}
-                  />
                 </div>
               </div>
 

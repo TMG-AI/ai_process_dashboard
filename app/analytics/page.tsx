@@ -274,7 +274,7 @@ export default function AnalyticsPage() {
                       {formatHours(project.totalHours)} total
                     </div>
                   </div>
-                  <div className="grid grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
                       <span className="text-gray-600">Building: </span>
                       <span className="font-medium text-gray-900">
@@ -297,17 +297,6 @@ export default function AnalyticsPage() {
                         {project.debugRatio}%
                       </span>
                     </div>
-                    <div>
-                      <span className="text-gray-600">Progress: </span>
-                      <span className="font-medium text-gray-900">{project.progress}%</span>
-                    </div>
-                  </div>
-                  {/* Progress bar */}
-                  <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gray-900 transition-all duration-500"
-                      style={{ width: `${project.progress}%` }}
-                    />
                   </div>
                 </div>
               ))}
