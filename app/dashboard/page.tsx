@@ -1565,7 +1565,7 @@ export default function DashboardPage() {
         projects={activeProjects.map(p => ({
           id: p.id,
           name: p.name,
-          progress: p.progress,
+          status: p.status,
           buildingHours: p.buildingHours,
           debuggingHours: p.debuggingHours,
         }))}

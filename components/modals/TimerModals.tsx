@@ -292,7 +292,7 @@ interface ProjectLimiterModalProps {
   projects: Array<{
     id: string;
     name: string;
-    progress: number;
+    status: string;
     buildingHours: number;
     debuggingHours: number;
   }>;
@@ -326,8 +326,8 @@ export function ProjectLimiterModal({
               >
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-900">{project.name}</h4>
-                  <div className="text-sm text-gray-600 mt-1">
-                    {project.progress}% complete • {(project.buildingHours + project.debuggingHours).toFixed(1)}h logged
+                  <div className="text-sm text-gray-600 mt-1 capitalize">
+                    {project.status} • {(project.buildingHours + project.debuggingHours).toFixed(1)}h logged
                   </div>
                 </div>
                 <button
