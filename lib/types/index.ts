@@ -96,6 +96,20 @@ export interface DebugLog {
   createdAt: string;
 }
 
+export interface LearningLog {
+  id: string;
+  userId: string;
+  sources: Array<'nate-jones' | 'other-substacks' | 'tiktok-ai' | 'claude-code' | 'other'>; // Multiple sources can be selected
+  otherSource?: string; // Custom text if 'other' is selected
+  topic?: string; // What they learned about
+  description?: string; // Optional notes about what was learned
+  startedAt: string;
+  endedAt?: string;
+  durationMinutes: number; // Can be set manually or calculated
+  isManual: boolean; // true if manually entered, false if tracked with timer
+  createdAt: string;
+}
+
 export interface ColleagueRequest {
   id: string;
   userId: string;

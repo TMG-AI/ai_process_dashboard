@@ -1,5 +1,5 @@
 import { redis } from './client';
-import { Project, TimeLog, DebugLog, ColleagueRequest, WeeklyReview } from '@/lib/types';
+import { Project, TimeLog, DebugLog, ColleagueRequest, WeeklyReview, LearningLog } from '@/lib/types';
 
 // Redis Key Patterns:
 // user:{userId}:projects - Set of project IDs for a user
@@ -12,6 +12,8 @@ import { Project, TimeLog, DebugLog, ColleagueRequest, WeeklyReview } from '@/li
 // request:{requestId} - Individual request data (JSON)
 // user:{userId}:reviews - Sorted set of review IDs (by week)
 // review:{reviewId} - Individual review data (JSON)
+// user:{userId}:learninglogs - Sorted set of learning log IDs (by timestamp)
+// learninglog:{learninglogId} - Individual learning log data (JSON)
 
 // ===== PROJECT OPERATIONS =====
 
@@ -293,4 +295,58 @@ export async function pauseProject(projectId: string): Promise<Project | null> {
   return await updateProject(projectId, {
     status: 'paused',
   });
+}
+
+// ===== LEARNING LOG OPERATIONS =====
+
+export async function createLearningLog(learningLogData: Omit<LearningLog, 'id' | 'createdAt'>): Promise<LearningLog> {
+  const learningLogId = `learning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const learningLog: LearningLog = {
+    id: learningLogId,
+    ...learningLogData,
+    createdAt: new Date().toISOString(),
+  };
+
+  await redis.set(`learninglog:${learningLogId}`, learningLog);
+  await redis.zadd(`user:${learningLogData.userId}:learninglogs`, {
+    score: new Date(learningLog.startedAt).getTime(),
+    member: learningLogId,
+  });
+
+  return learningLog;
+}
+
+export async function getLearningLog(learningLogId: string): Promise<LearningLog | null> {
+  const data = await redis.get<LearningLog>(`learninglog:${learningLogId}`);
+  return data;
+}
+
+export async function getUserLearningLogs(userId: string, limit: number = 100): Promise<LearningLog[]> {
+  const learningLogIds = await redis.zrange(`user:${userId}:learninglogs`, 0, limit - 1, { rev: true });
+  if (!learningLogIds.length) return [];
+
+  const learningLogs = await Promise.all(
+    learningLogIds.map(id => getLearningLog(id as string))
+  );
+
+  return learningLogs.filter(l => l !== null) as LearningLog[];
+}
+
+export async function updateLearningLog(learningLogId: string, updates: Partial<LearningLog>): Promise<LearningLog | null> {
+  const learningLog = await getLearningLog(learningLogId);
+  if (!learningLog) return null;
+
+  const updatedLearningLog = {
+    ...learningLog,
+    ...updates,
+  };
+
+  await redis.set(`learninglog:${learningLogId}`, updatedLearningLog);
+  return updatedLearningLog;
+}
+
+export async function getTotalLearningHours(userId: string): Promise<number> {
+  const learningLogs = await getUserLearningLogs(userId);
+  const totalMinutes = learningLogs.reduce((sum, log) => sum + log.durationMinutes, 0);
+  return totalMinutes / 60; // Convert to hours
 }
