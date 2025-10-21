@@ -635,7 +635,7 @@ export default function DashboardPage() {
     return formatTime(totalSeconds);
   };
 
-  const HomeView = () => {
+  function HomeView() {
     if (isLoading) {
       return (
         <div className="flex items-center justify-center py-12">
@@ -974,7 +974,7 @@ export default function DashboardPage() {
   };
 
 
-  const Modal = ({ type }: { type: string }) => {
+  function Modal({ type }: { type: string }) {
     if (type === 'complete-confirm') {
       const project = projects.find(p => p.id === selectedProjectId);
       return (
