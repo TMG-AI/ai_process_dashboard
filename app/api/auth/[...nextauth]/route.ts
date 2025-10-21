@@ -5,7 +5,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'your@email.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'your-password';
 
-export const authOptions: NextAuthOptions = {
+const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
