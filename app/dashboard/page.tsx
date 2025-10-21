@@ -204,8 +204,8 @@ export default function DashboardPage() {
         console.log('📊 BROWSER: Updated hours check:', data.projects.map((p: Project) => ({
           id: p.id,
           name: p.name,
-          buildingHours: p.buildingHours,
-          debuggingHours: p.debuggingHours
+          buildingHours: p.buildingHours || 0,
+          debuggingHours: p.debuggingHours || 0
         })));
         setProjectsList(data.projects);
       } else {
@@ -1552,8 +1552,8 @@ export default function DashboardPage() {
           id: p.id,
           name: p.name,
           status: p.status,
-          buildingHours: p.buildingHours,
-          debuggingHours: p.debuggingHours,
+          buildingHours: p.buildingHours || 0,
+          debuggingHours: p.debuggingHours || 0,
         }))}
         onPauseProject={handlePauseProjectForNew}
       />
