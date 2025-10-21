@@ -127,9 +127,42 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [isLearningTimerActive]);
 
+  // Request notification permission
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      try {
+        await Notification.requestPermission();
+      } catch (error) {
+        console.error('Failed to request notification permission:', error);
+      }
+    }
+  };
+
+  // Send desktop notification
+  const sendNotification = (title: string, body: string, requireInteraction = false) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const notification = new Notification(title, {
+        body,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        requireInteraction, // Stays on screen until user dismisses
+        tag: 'timer-alert', // Replaces previous notifications
+      });
+
+      // Focus window when notification is clicked
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+    }
+  };
+
   // Start timer
   const handleStartTimer = async (projectId: string, type: 'building' | 'debugging') => {
     try {
+      // Request notification permission first
+      await requestNotificationPermission();
+
       const response = await fetch('/api/timelog/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -600,17 +633,32 @@ export default function DashboardPage() {
     if (timerType === 'debugging') {
       // 60 minutes - show modal once
       if (elapsedSeconds >= 3600 && !has60ModalShown) {
+        sendNotification(
+          '⏱️ Debug Session: 60 Minutes',
+          'Time to document your debugging progress. Click to open the app.',
+          false
+        );
         setShowDebug60Modal(true);
         setHas60ModalShown(true);
       }
       // 90 minutes - show modal once (only if not already in extended mode)
       if (elapsedSeconds >= 5400 && !has90ModalShown && !isExtendedDebugging) {
+        sendNotification(
+          '⚠️ Debug Session: 90 MINUTE LIMIT',
+          'Stop and take a break. Research shows fresh perspective leads to faster resolution.',
+          true // Requires interaction - won't auto-dismiss
+        );
         setShowDebug90Modal(true);
         setHas90ModalShown(true);
       }
     } else if (timerType === 'building') {
       // 2 hours - show modal once
       if (elapsedSeconds >= 7200 && !has120ModalShown) {
+        sendNotification(
+          '⏱️ Building Session: 2 Hours',
+          'Consider taking a short break to maintain focus and code quality.',
+          false
+        );
         setShowBuilding2HrModal(true);
         setHas120ModalShown(true);
       }
